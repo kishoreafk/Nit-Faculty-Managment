@@ -1,0 +1,138 @@
+{
+  "facultyLeaveRules": {
+    "teaching": {
+      "earnedLeave": {
+        "monthlyAccrual": 2.5,
+        "maxAnnualDays": 30,
+        "carryForwardAllowed": true,
+        "maxCarryForward": 15,
+        "encashmentAllowed": true,
+        "maxEncashment": 15
+      },
+      "casualLeave": {
+        "annualAllocation": 12,
+        "carryForwardAllowed": false,
+        "resetOnYearEnd": true
+      },
+      "specialCasualLeave": {
+        "annualAllocation": 2,
+        "carryForwardAllowed": false,
+        "resetOnYearEnd": true
+      },
+      "medicalLeave": {
+        "maxDays": 90,
+        "carryForwardAllowed": false
+      },
+      "maternityLeave": {
+        "maxDays": 180,
+        "carryForwardAllowed": false
+      },
+      "studyLeave": {
+        "maxDays": 365,
+        "carryForwardAllowed": false
+      }
+    },
+    "non_teaching": {
+      "earnedLeave": {
+        "monthlyAccrual": 2.5,
+        "maxAnnualDays": 30,
+        "carryForwardAllowed": true,
+        "maxCarryForward": 15,
+        "encashmentAllowed": true,
+        "maxEncashment": 15
+      },
+      "casualLeave": {
+        "annualAllocation": 12,
+        "carryForwardAllowed": false,
+        "resetOnYearEnd": true
+      },
+      "restrictedHoliday": {
+        "annualAllocation": 2,
+        "carryForwardAllowed": false,
+        "resetOnYearEnd": true
+      },
+      "halfPayLeave": {
+        "annualAllocation": 15,
+        "carryForwardAllowed": false,
+        "resetOnYearEnd": true
+      },
+      "hospitalAttendanceLeave": {
+        "annualAllocation": 2,
+        "carryForwardAllowed": false,
+        "resetOnYearEnd": true
+      },
+      "medicalLeave": {
+        "maxDays": 90,
+        "carryForwardAllowed": false
+      },
+      "maternityLeave": {
+        "maxDays": 180,
+        "carryForwardAllowed": false
+      },
+      "studyLeave": {
+        "maxDays": 180,
+        "carryForwardAllowed": false
+      }
+    },
+    "contract": {
+      "earnedLeave": {
+        "monthlyAccrual": 1.25,
+        "maxAnnualDays": 15,
+        "carryForwardAllowed": false,
+        "resetOnYearEnd": true
+      },
+      "casualLeave": {
+        "annualAllocation": 8,
+        "carryForwardAllowed": false,
+        "resetOnYearEnd": true
+      },
+      "medicalLeave": {
+        "maxDays": 60,
+        "carryForwardAllowed": false
+      },
+      "maternityLeave": {
+        "maxDays": 90,
+        "carryForwardAllowed": false
+      }
+    },
+    "visiting": {
+      "earnedLeave": {
+        "monthlyAccrual": 0.83,
+        "maxAnnualDays": 10,
+        "carryForwardAllowed": false,
+        "resetOnYearEnd": true
+      },
+      "casualLeave": {
+        "annualAllocation": 6,
+        "carryForwardAllowed": false,
+        "resetOnYearEnd": true
+      },
+      "medicalLeave": {
+        "maxDays": 30,
+        "carryForwardAllowed": false
+      },
+      "maternityLeave": {
+        "maxDays": 90,
+        "carryForwardAllowed": false
+      }
+    }
+  },
+  "calculationSettings": {
+    "yearStartMonth": 1,
+    "yearEndMonth": 12,
+    "probationPeriod": {
+      "teaching": 6,
+      "non_teaching": 3,
+      "contract": 0,
+      "visiting": 0
+    },
+    "earnedLeaveEligibility": {
+      "minimumServiceMonths": 6
+    },
+    "carryForwardRules": {
+      "maxCarryForwardPeriod": "1 year",
+      "carryForwardDeadline": "March 31",
+      "autoLapseUnusedLeave": true
+    }
+  }
+}

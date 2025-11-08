@@ -1,0 +1,647 @@
+{
+  "formTemplates": {
+    "teaching": {
+      "casual": {
+        "templateName": "Teaching Faculty Casual Leave Application",
+        "formType": "casual_leave_teaching",
+        "adjustmentRequired": true,
+        "fields": [
+          {
+            "name": "leave_type",
+            "label": "Leave Type",
+            "type": "text",
+            "required": true,
+            "defaultValue": "Casual Leave",
+            "readonly": true,
+            "autoFill": true
+          },
+          {
+            "name": "name",
+            "label": "Faculty Name",
+            "type": "text",
+            "required": true,
+            "autoFill": "faculty_name",
+            "readonly": true
+          },
+          {
+            "name": "designation",
+            "label": "Designation",
+            "type": "text",
+            "required": true,
+            "autoFill": "designation",
+            "readonly": true
+          },
+          {
+            "name": "department",
+            "label": "Department",
+            "type": "text",
+            "required": true,
+            "autoFill": "department",
+            "readonly": true
+          },
+          {
+            "name": "employee_id",
+            "label": "Employee ID",
+            "type": "text",
+            "required": true,
+            "autoFill": "employee_id",
+            "readonly": true
+          },
+          {
+            "name": "leave_start_date",
+            "label": "Leave Start Date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "name": "leave_end_date",
+            "label": "Leave End Date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "name": "no_of_days_leave",
+            "label": "Number of Days",
+            "type": "number",
+            "required": true,
+            "autoCalculate": true,
+            "readonly": true
+          },
+          {
+            "name": "reason",
+            "label": "Reason for Leave",
+            "type": "textarea",
+            "required": true,
+            "placeholder": "Please provide detailed reason for leave"
+          },
+          {
+            "name": "adjustment_duties",
+            "label": "Adjustment Duties",
+            "type": "adjustment_table",
+            "required": true,
+            "tableConfig": {
+              "columns": [
+                {
+                  "name": "adjustment_faculty_name",
+                  "label": "Faculty Name",
+                  "type": "text",
+                  "required": true,
+                  "placeholder": "Name of adjusting faculty"
+                },
+                {
+                  "name": "subject_code",
+                  "label": "Subject Code",
+                  "type": "text",
+                  "required": true,
+                  "placeholder": "e.g., CS101"
+                },
+                {
+                  "name": "subject_name",
+                  "label": "Subject Name",
+                  "type": "text",
+                  "required": true,
+                  "placeholder": "e.g., Data Structures"
+                },
+                {
+                  "name": "class_section",
+                  "label": "Class/Section",
+                  "type": "text",
+                  "required": true,
+                  "placeholder": "e.g., B.Tech CSE 3rd Year A"
+                },
+                {
+                  "name": "date",
+                  "label": "Date",
+                  "type": "date",
+                  "required": true
+                },
+                {
+                  "name": "time_from",
+                  "label": "From Time",
+                  "type": "time",
+                  "required": true
+                },
+                {
+                  "name": "time_to",
+                  "label": "To Time",
+                  "type": "time",
+                  "required": true
+                },
+                {
+                  "name": "period_number",
+                  "label": "Period",
+                  "type": "number",
+                  "required": false,
+                  "placeholder": "Period number"
+                },
+                {
+                  "name": "adjustment_type",
+                  "label": "Type",
+                  "type": "select",
+                  "required": true,
+                  "options": ["class", "duty", "exam", "other"]
+                },
+                {
+                  "name": "notes",
+                  "label": "Notes",
+                  "type": "text",
+                  "required": false,
+                  "placeholder": "Additional notes"
+                }
+              ],
+              "minRows": 1,
+              "maxRows": 10,
+              "addButtonText": "Add Adjustment",
+              "removeButtonText": "Remove"
+            }
+          },
+          {
+            "name": "contact_during_leave",
+            "label": "Contact During Leave",
+            "type": "text",
+            "required": false,
+            "placeholder": "Phone number or email for emergency contact"
+          },
+          {
+            "name": "application_date",
+            "label": "Application Date",
+            "type": "date",
+            "required": true,
+            "autoFill": "current_date",
+            "readonly": true
+          },
+          {
+            "name": "application_status",
+            "label": "Status",
+            "type": "text",
+            "required": true,
+            "defaultValue": "Pending",
+            "readonly": true,
+            "autoFill": true
+          }
+        ]
+      },
+      "earned": {
+        "templateName": "Teaching Faculty Earned Leave Application",
+        "formType": "earned_leave_teaching",
+        "adjustmentRequired": true,
+        "fields": [
+          {
+            "name": "leave_type",
+            "label": "Leave Type",
+            "type": "text",
+            "required": true,
+            "defaultValue": "Earned Leave",
+            "readonly": true,
+            "autoFill": true
+          },
+          {
+            "name": "name",
+            "label": "Faculty Name",
+            "type": "text",
+            "required": true,
+            "autoFill": "faculty_name",
+            "readonly": true
+          },
+          {
+            "name": "designation",
+            "label": "Designation",
+            "type": "text",
+            "required": true,
+            "autoFill": "designation",
+            "readonly": true
+          },
+          {
+            "name": "department",
+            "label": "Department",
+            "type": "text",
+            "required": true,
+            "autoFill": "department",
+            "readonly": true
+          },
+          {
+            "name": "nature_of_leave",
+            "label": "Nature of Leave",
+            "type": "select",
+            "required": true,
+            "options": ["Vacation", "Personal", "Family", "Medical", "Other"]
+          },
+          {
+            "name": "leave_start",
+            "label": "Leave Start Date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "name": "leave_end",
+            "label": "Leave End Date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "name": "no_of_leave_days",
+            "label": "Number of Leave Days",
+            "type": "number",
+            "required": true,
+            "autoCalculate": true,
+            "readonly": true
+          },
+          {
+            "name": "prefix_leave_start",
+            "label": "Prefix Leave Start",
+            "type": "date",
+            "required": false
+          },
+          {
+            "name": "prefix_leave_end",
+            "label": "Prefix Leave End",
+            "type": "date",
+            "required": false
+          },
+          {
+            "name": "suffix_leave_start",
+            "label": "Suffix Leave Start",
+            "type": "date",
+            "required": false
+          },
+          {
+            "name": "suffix_leave_end",
+            "label": "Suffix Leave End",
+            "type": "date",
+            "required": false
+          },
+          {
+            "name": "address",
+            "label": "Address During Leave",
+            "type": "textarea",
+            "required": true,
+            "placeholder": "Complete address where you can be contacted during leave"
+          },
+          {
+            "name": "contact_info",
+            "label": "Contact Information",
+            "type": "text",
+            "required": true,
+            "placeholder": "Phone number and email"
+          },
+          {
+            "name": "adjustment_faculty_name",
+            "label": "Adjustment Faculty Name",
+            "type": "text",
+            "required": true,
+            "placeholder": "Faculty member who will handle your responsibilities"
+          },
+          {
+            "name": "adjustment_details",
+            "label": "Adjustment Details",
+            "type": "textarea",
+            "required": true,
+            "placeholder": "Detailed plan for handling classes and duties during leave"
+          },
+          {
+            "name": "application_date",
+            "label": "Application Date",
+            "type": "date",
+            "required": true,
+            "autoFill": "current_date",
+            "readonly": true
+          }
+        ]
+      },
+      "medical": {
+        "templateName": "Teaching Faculty Medical Leave Application",
+        "formType": "medical_leave_teaching",
+        "adjustmentRequired": false,
+        "fields": [
+          {
+            "name": "leave_type",
+            "label": "Leave Type",
+            "type": "text",
+            "required": true,
+            "defaultValue": "Medical Leave",
+            "readonly": true,
+            "autoFill": true
+          },
+          {
+            "name": "name",
+            "label": "Faculty Name",
+            "type": "text",
+            "required": true,
+            "autoFill": "faculty_name",
+            "readonly": true
+          },
+          {
+            "name": "designation",
+            "label": "Designation",
+            "type": "text",
+            "required": true,
+            "autoFill": "designation",
+            "readonly": true
+          },
+          {
+            "name": "department",
+            "label": "Department",
+            "type": "text",
+            "required": true,
+            "autoFill": "department",
+            "readonly": true
+          },
+          {
+            "name": "medical_condition",
+            "label": "Medical Condition",
+            "type": "textarea",
+            "required": true,
+            "placeholder": "Brief description of medical condition requiring leave"
+          },
+          {
+            "name": "leave_start_date",
+            "label": "Leave Start Date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "name": "leave_end_date",
+            "label": "Leave End Date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "name": "no_of_days_leave",
+            "label": "Number of Days",
+            "type": "number",
+            "required": true,
+            "autoCalculate": true,
+            "readonly": true
+          },
+          {
+            "name": "medical_certificate",
+            "label": "Medical Certificate Attached",
+            "type": "checkbox",
+            "required": true
+          },
+          {
+            "name": "doctor_name",
+            "label": "Doctor's Name",
+            "type": "text",
+            "required": true,
+            "placeholder": "Name of attending physician"
+          },
+          {
+            "name": "hospital_name",
+            "label": "Hospital/Clinic Name",
+            "type": "text",
+            "required": true,
+            "placeholder": "Name of medical facility"
+          },
+          {
+            "name": "emergency_contact",
+            "label": "Emergency Contact",
+            "type": "text",
+            "required": true,
+            "placeholder": "Contact person and phone number"
+          },
+          {
+            "name": "application_date",
+            "label": "Application Date",
+            "type": "date",
+            "required": true,
+            "autoFill": "current_date",
+            "readonly": true
+          }
+        ]
+      }
+    },
+    "non_teaching": {
+      "casual": {
+        "templateName": "Non-Teaching Staff Casual Leave Application",
+        "formType": "casual_leave_non_teaching",
+        "adjustmentRequired": true,
+        "fields": [
+          {
+            "name": "leave_type",
+            "label": "Leave Type",
+            "type": "text",
+            "required": true,
+            "defaultValue": "Casual Leave",
+            "readonly": true,
+            "autoFill": true
+          },
+          {
+            "name": "name",
+            "label": "Staff Name",
+            "type": "text",
+            "required": true,
+            "autoFill": "faculty_name",
+            "readonly": true
+          },
+          {
+            "name": "designation",
+            "label": "Designation",
+            "type": "text",
+            "required": true,
+            "autoFill": "designation",
+            "readonly": true
+          },
+          {
+            "name": "department",
+            "label": "Department/Section",
+            "type": "text",
+            "required": true,
+            "autoFill": "department",
+            "readonly": true
+          },
+          {
+            "name": "employee_id",
+            "label": "Employee ID",
+            "type": "text",
+            "required": true,
+            "autoFill": "employee_id",
+            "readonly": true
+          },
+          {
+            "name": "leave_start_date",
+            "label": "Leave Start Date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "name": "leave_end_date",
+            "label": "Leave End Date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "name": "no_of_days_leave",
+            "label": "Number of Days",
+            "type": "number",
+            "required": true,
+            "autoCalculate": true,
+            "readonly": true
+          },
+          {
+            "name": "reason",
+            "label": "Reason for Leave",
+            "type": "textarea",
+            "required": true,
+            "placeholder": "Please provide detailed reason for leave"
+          },
+          {
+            "name": "work_arrangement",
+            "label": "Work Arrangement During Leave",
+            "type": "textarea",
+            "required": true,
+            "placeholder": "How will your work responsibilities be handled during leave?"
+          },
+          {
+            "name": "replacement_staff",
+            "label": "Replacement Staff Name",
+            "type": "text",
+            "required": false,
+            "placeholder": "Staff member who will handle your duties (if applicable)"
+          },
+          {
+            "name": "handover_details",
+            "label": "Work Handover Details",
+            "type": "textarea",
+            "required": false,
+            "placeholder": "Details of work handover to colleagues"
+          },
+          {
+            "name": "contact_during_leave",
+            "label": "Contact During Leave",
+            "type": "text",
+            "required": false,
+            "placeholder": "Phone number for emergency contact"
+          },
+          {
+            "name": "application_date",
+            "label": "Application Date",
+            "type": "date",
+            "required": true,
+            "autoFill": "current_date",
+            "readonly": true
+          }
+        ]
+      }
+    },
+    "contract": {
+      "casual": {
+        "templateName": "Contract Faculty Casual Leave Application",
+        "formType": "casual_leave_contract",
+        "adjustmentRequired": true,
+        "fields": [
+          {
+            "name": "leave_type",
+            "label": "Leave Type",
+            "type": "text",
+            "required": true,
+            "defaultValue": "Casual Leave",
+            "readonly": true,
+            "autoFill": true
+          },
+          {
+            "name": "name",
+            "label": "Faculty Name",
+            "type": "text",
+            "required": true,
+            "autoFill": "faculty_name",
+            "readonly": true
+          },
+          {
+            "name": "designation",
+            "label": "Designation",
+            "type": "text",
+            "required": true,
+            "autoFill": "designation",
+            "readonly": true
+          },
+          {
+            "name": "department",
+            "label": "Department",
+            "type": "text",
+            "required": true,
+            "autoFill": "department",
+            "readonly": true
+          },
+          {
+            "name": "contract_period",
+            "label": "Contract Period",
+            "type": "text",
+            "required": true,
+            "placeholder": "e.g., Jan 2024 - Dec 2024"
+          },
+          {
+            "name": "leave_start_date",
+            "label": "Leave Start Date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "name": "leave_end_date",
+            "label": "Leave End Date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "name": "no_of_days_leave",
+            "label": "Number of Days",
+            "type": "number",
+            "required": true,
+            "autoCalculate": true,
+            "readonly": true
+          },
+          {
+            "name": "reason",
+            "label": "Reason for Leave",
+            "type": "textarea",
+            "required": true,
+            "placeholder": "Please provide detailed reason for leave"
+          },
+          {
+            "name": "adjustment_faculty_name",
+            "label": "Replacement Faculty Name",
+            "type": "text",
+            "required": true,
+            "placeholder": "Faculty member who will handle your classes"
+          },
+          {
+            "name": "class_schedule_affected",
+            "label": "Classes/Schedule Affected",
+            "type": "textarea",
+            "required": true,
+            "placeholder": "List of classes and timings that will be affected"
+          },
+          {
+            "name": "adjustment_date",
+            "label": "Adjustment Date",
+            "type": "date",
+            "required": false,
+            "placeholder": "Date when replacement will start"
+          },
+          {
+            "name": "adjustment_time",
+            "label": "Adjustment Time",
+            "type": "time",
+            "required": false,
+            "placeholder": "Time of adjustment"
+          },
+          {
+            "name": "contact_during_leave",
+            "label": "Contact During Leave",
+            "type": "text",
+            "required": true,
+            "placeholder": "Phone number for emergency contact"
+          },
+          {
+            "name": "application_date",
+            "label": "Application Date",
+            "type": "date",
+            "required": true,
+            "autoFill": "current_date",
+            "readonly": true
+          }
+        ]
+      }
+    }
+  }
+}

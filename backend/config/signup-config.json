@@ -1,0 +1,23 @@
+{
+  "configFiles": {
+    "departments": "./departments.json",
+    "facultyTypes": "./faculty-types.json"
+  },
+  "systemSettings": {
+    "allowSelfRegistration": true,
+    "requireEmailVerification": false,
+    "defaultRole": "faculty",
+    "passwordPolicy": {
+      "minLength": 8,
+      "requireUppercase": true,
+      "requireLowercase": true,
+      "requireNumbers": true,
+      "requireSpecialChars": false
+    },
+    "accountSettings": {
+      "autoApproveRegistration": false,
+      "probationPeriod": 6,
+      "defaultStatus": "pending"
+    }
+  }
+}

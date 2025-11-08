@@ -1,0 +1,172 @@
+{
+  "leaveTypes": {
+    "casual": {
+      "id": "casual",
+      "name": "Casual Leave",
+      "description": "Short-term leave for personal reasons",
+      "maxDays": {
+        "teaching": 12,
+        "non_teaching": 12,
+        "contract": 8,
+        "visiting": 6
+      },
+      "applicableFor": ["teaching", "non_teaching", "contract", "visiting"],
+      "requiresApproval": true,
+      "advanceNotice": 1,
+      "carryForward": false,
+      "medicalCertificateRequired": false,
+      "adjustmentRequired": false,
+      "approvalHierarchy": ["hod", "principal"]
+    },
+    "special_casual": {
+      "id": "special_casual",
+      "name": "Special Casual Leave",
+      "description": "Special casual leave for urgent personal matters",
+      "maxDays": {
+        "teaching": 2,
+        "non_teaching": 0,
+        "contract": 0,
+        "visiting": 0
+      },
+      "applicableFor": ["teaching"],
+      "requiresApproval": true,
+      "advanceNotice": 0,
+      "carryForward": false,
+      "medicalCertificateRequired": false,
+      "adjustmentRequired": true,
+      "approvalHierarchy": ["hod", "principal"],
+      "specialConditions": "For emergency situations only"
+    },
+    "earned": {
+      "id": "earned",
+      "name": "Earned Leave",
+      "description": "Annual earned leave for vacation and personal purposes",
+      "maxDays": {
+        "teaching": 30,
+        "non_teaching": 30,
+        "contract": 15,
+        "visiting": 10
+      },
+      "applicableFor": ["teaching", "non_teaching", "contract", "visiting"],
+      "requiresApproval": true,
+      "advanceNotice": 7,
+      "carryForward": false,
+      "medicalCertificateRequired": false,
+      "adjustmentRequired": false,
+      "approvalHierarchy": ["hod", "principal"],
+      "encashmentAllowed": false
+    },
+    "rh": {
+      "id": "rh",
+      "name": "Restricted Holiday",
+      "description": "Leave for restricted holidays",
+      "maxDays": {
+        "teaching": 0,
+        "non_teaching": 2,
+        "contract": 0,
+        "visiting": 0
+      },
+      "applicableFor": ["non_teaching"],
+      "requiresApproval": true,
+      "advanceNotice": 1,
+      "carryForward": false,
+      "medicalCertificateRequired": false,
+      "adjustmentRequired": false,
+      "approvalHierarchy": ["hod"]
+    },
+    "hpl": {
+      "id": "hpl",
+      "name": "Half Pay Leave",
+      "description": "Half pay leave for extended absence",
+      "maxDays": {
+        "teaching": 0,
+        "non_teaching": 15,
+        "contract": 0,
+        "visiting": 0
+      },
+      "applicableFor": ["non_teaching"],
+      "requiresApproval": true,
+      "advanceNotice": 7,
+      "carryForward": false,
+      "medicalCertificateRequired": false,
+      "adjustmentRequired": true,
+      "approvalHierarchy": ["hod", "principal"],
+      "salaryDeduction": 50
+    },
+    "hapl": {
+      "id": "hapl",
+      "name": "Hospital Attendance Leave",
+      "description": "Leave for hospital attendance (2 HAPL = 1 ML)",
+      "maxDays": {
+        "teaching": 0,
+        "non_teaching": 2,
+        "contract": 0,
+        "visiting": 0
+      },
+      "applicableFor": ["non_teaching"],
+      "requiresApproval": true,
+      "advanceNotice": 0,
+      "carryForward": false,
+      "medicalCertificateRequired": true,
+      "adjustmentRequired": false,
+      "approvalHierarchy": ["hod"],
+      "conversionRule": "2 HAPL = 1 ML"
+    },
+    "medical": {
+      "id": "medical",
+      "name": "Medical Leave",
+      "description": "Leave for medical treatment and recovery",
+      "maxDays": {
+        "teaching": 90,
+        "non_teaching": 90,
+        "contract": 60,
+        "visiting": 30
+      },
+      "applicableFor": ["teaching", "non_teaching", "contract", "visiting"],
+      "requiresApproval": true,
+      "requiresMedicalCertificate": true,
+      "advanceNotice": 0,
+      "carryForward": false,
+      "adjustmentRequired": false,
+      "approvalHierarchy": ["hod", "principal"]
+    },
+    "maternity": {
+      "id": "maternity",
+      "name": "Maternity Leave",
+      "description": "Maternity leave for female employees",
+      "maxDays": {
+        "teaching": 180,
+        "non_teaching": 180,
+        "contract": 90,
+        "visiting": 90
+      },
+      "applicableFor": ["teaching", "non_teaching", "contract", "visiting"],
+      "requiresApproval": true,
+      "requiresMedicalCertificate": true,
+      "advanceNotice": 30,
+      "carryForward": false,
+      "adjustmentRequired": false,
+      "approvalHierarchy": ["hod", "principal"],
+      "paidLeave": true,
+      "genderSpecific": "female"
+    },
+    "study": {
+      "id": "study",
+      "name": "Study Leave",
+      "description": "Leave for higher studies, research, or professional development",
+      "maxDays": {
+        "teaching": 365,
+        "non_teaching": 180,
+        "contract": 0,
+        "visiting": 0
+      },
+      "applicableFor": ["teaching", "non_teaching"],
+      "requiresApproval": true,
+      "requiresDocumentation": true,
+      "advanceNotice": 60,
+      "carryForward": false,
+      "adjustmentRequired": false,
+      "approvalHierarchy": ["hod", "principal"]
+    }
+  }
+}

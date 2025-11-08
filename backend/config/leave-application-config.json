@@ -1,0 +1,31 @@
+{
+  "configFiles": {
+    "leaveTypes": "./leave-types.json",
+    "formTemplates": "./leave-form-templates.json"
+  },
+  "systemSettings": {
+    "maxAdvanceApplicationDays": 90,
+    "minAdvanceApplicationDays": 1,
+    "autoCalculateDays": true,
+    "allowWeekendLeave": true,
+    "allowHolidayLeave": false,
+    "enhancedCalculation": {
+      "enabled": true,
+      "monthlyAccrualCalculation": true,
+      "carryForwardProcessing": true,
+      "yearEndProcessing": true
+    }
+  },
+  "notifications": {
+    "emailNotifications": false,
+    "smsNotifications": false
+  },
+  "calculationRules": {
+    "earnedLeaveAccrual": {
+      "teaching": { "monthlyRate": 2.5, "maxAnnual": 30, "carryForward": 15 },
+      "non_teaching": { "monthlyRate": 2.5, "maxAnnual": 30, "carryForward": 15 },
+      "contract": { "monthlyRate": 1.25, "maxAnnual": 15, "carryForward": 0 },
+      "visiting": { "monthlyRate": 0.83, "maxAnnual": 10, "carryForward": 0 }
+    }
+  }
+}

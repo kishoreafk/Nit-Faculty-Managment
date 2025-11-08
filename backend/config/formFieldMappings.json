@@ -1,0 +1,140 @@
+{
+  "fieldPatterns": {
+    "name": [
+      "name\\s*[:_\\-\\s]*",
+      "faculty\\s*name\\s*[:_\\-\\s]*",
+      "applicant\\s*name\\s*[:_\\-\\s]*"
+    ],
+    "employeeId": [
+      "employee\\s*(id|number)\\s*[:_\\-\\s]*",
+      "emp\\s*(id|no)\\s*[:_\\-\\s]*",
+      "staff\\s*(id|number)\\s*[:_\\-\\s]*",
+      "faculty\\s*(id|number)\\s*[:_\\-\\s]*"
+    ],
+    "department": [
+      "department\\s*[:_\\-\\s]*",
+      "dept\\s*[:_\\-\\s]*",
+      "branch\\s*[:_\\-\\s]*"
+    ],
+    "designation": [
+      "designation\\s*[:_\\-\\s]*",
+      "position\\s*[:_\\-\\s]*",
+      "rank\\s*[:_\\-\\s]*"
+    ],
+    "leaveType": [
+      "leave\\s*type\\s*[:_\\-\\s]*",
+      "type\\s*of\\s*leave\\s*[:_\\-\\s]*",
+      "category\\s*[:_\\-\\s]*"
+    ],
+    "startDate": [
+      "(start|from)\\s*date\\s*[:_\\-\\s]*",
+      "leave\\s*from\\s*[:_\\-\\s]*",
+      "commencement\\s*date\\s*[:_\\-\\s]*"
+    ],
+    "endDate": [
+      "(end|to)\\s*date\\s*[:_\\-\\s]*",
+      "leave\\s*to\\s*[:_\\-\\s]*",
+      "resumption\\s*date\\s*[:_\\-\\s]*"
+    ],
+    "reason": [
+      "reason\\s*[:_\\-\\s]*",
+      "purpose\\s*[:_\\-\\s]*",
+      "justification\\s*[:_\\-\\s]*"
+    ],
+    "contact": [
+      "contact\\s*(number|details)?\\s*[:_\\-\\s]*",
+      "phone\\s*(number)?\\s*[:_\\-\\s]*",
+      "mobile\\s*(number)?\\s*[:_\\-\\s]*",
+      "emergency\\s*contact\\s*[:_\\-\\s]*"
+    ],
+    "alternativeArrangement": [
+      "alternative\\s*arrangement\\s*[:_\\-\\s]*",
+      "substitute\\s*arrangement\\s*[:_\\-\\s]*",
+      "class\\s*arrangement\\s*[:_\\-\\s]*",
+      "work\\s*arrangement\\s*[:_\\-\\s]*"
+    ],
+    "medicalCertificate": [
+      "medical\\s*certificate\\s*[:_\\-\\s]*",
+      "health\\s*certificate\\s*[:_\\-\\s]*",
+      "doctor\\s*certificate\\s*[:_\\-\\s]*"
+    ],
+    "expectedDeliveryDate": [
+      "expected\\s*delivery\\s*date\\s*[:_\\-\\s]*",
+      "due\\s*date\\s*[:_\\-\\s]*",
+      "delivery\\s*date\\s*[:_\\-\\s]*"
+    ],
+    "leavePurpose": [
+      "purpose\\s*(of\\s*leave)?\\s*[:_\\-\\s]*",
+      "leave\\s*purpose\\s*[:_\\-\\s]*",
+      "objective\\s*[:_\\-\\s]*"
+    ],
+    "illnessNature": [
+      "nature\\s*of\\s*illness\\s*[:_\\-\\s]*",
+      "illness\\s*details\\s*[:_\\-\\s]*",
+      "medical\\s*condition\\s*[:_\\-\\s]*"
+    ],
+    "activityDetails": [
+      "activity\\s*details\\s*[:_\\-\\s]*",
+      "conference\\s*details\\s*[:_\\-\\s]*",
+      "seminar\\s*details\\s*[:_\\-\\s]*",
+      "workshop\\s*details\\s*[:_\\-\\s]*",
+      "program\\s*details\\s*[:_\\-\\s]*"
+    ],
+    "activityVenue": [
+      "venue\\s*[:_\\-\\s]*",
+      "location\\s*[:_\\-\\s]*",
+      "place\\s*[:_\\-\\s]*",
+      "address\\s*[:_\\-\\s]*"
+    ],
+    "applicationDate": [
+      "application\\s*date\\s*[:_\\-\\s]*",
+      "date\\s*of\\s*application\\s*[:_\\-\\s]*",
+      "submitted\\s*on\\s*[:_\\-\\s]*"
+    ]
+  },
+  "leaveTypeSpecificFields": {
+    "Sick Leave": [
+      "medicalCertificate",
+      "illnessNature"
+    ],
+    "Maternity Leave": [
+      "medicalCertificate",
+      "expectedDeliveryDate"
+    ],
+    "Paternity Leave": [
+      "expectedDeliveryDate"
+    ],
+    "Earned Leave": [
+      "leavePurpose"
+    ],
+    "Activity Leave": [
+      "activityDetails",
+      "activityVenue",
+      "leavePurpose"
+    ],
+    "Conference Leave": [
+      "activityDetails",
+      "activityVenue"
+    ]
+  },
+  "commonFields": [
+    "name",
+    "employeeId",
+    "department",
+    "designation",
+    "leaveType",
+    "startDate",
+    "endDate",
+    "reason",
+    "contact",
+    "alternativeArrangement",
+    "applicationDate"
+  ],
+  "placeholderPatterns": [
+    "\\{\\{([^}]+)\\}\\}",
+    "\\[([^\\]]+)\\]",
+    "_+([A-Za-z_]+)_+",
+    "\\$\\{([^}]+)\\}",
+    "<<([^>]+)>>"
+  ]
+}

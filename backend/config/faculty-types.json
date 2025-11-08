@@ -1,0 +1,50 @@
+{
+  "facultyTypes": [
+    {
+      "id": "teaching",
+      "name": "Teaching",
+      "description": "Teaching faculty members",
+      "permissions": ["teach", "research", "leave_apply", "grade_students"],
+      "leaveCategories": ["casual", "earned", "medical", "maternity", "study"],
+      "maxCasualLeave": 12,
+      "maxEarnedLeave": 30,
+      "probationPeriod": 6,
+      "benefits": ["medical_insurance", "provident_fund", "gratuity"]
+    },
+    {
+      "id": "non_teaching",
+      "name": "Non-Teaching",
+      "description": "Non-teaching staff members",
+      "permissions": ["administrative", "leave_apply", "office_management"],
+      "leaveCategories": ["casual", "earned", "medical", "maternity"],
+      "maxCasualLeave": 12,
+      "maxEarnedLeave": 30,
+      "probationPeriod": 3,
+      "benefits": ["medical_insurance", "provident_fund"]
+    },
+    {
+      "id": "contract",
+      "name": "Contract",
+      "description": "Contract-based faculty",
+      "permissions": ["teach", "leave_apply"],
+      "leaveCategories": ["casual", "medical"],
+      "maxCasualLeave": 6,
+      "maxEarnedLeave": 0,
+      "contractSpecific": true,
+      "contractDuration": "1 year",
+      "benefits": ["basic_medical"]
+    },
+    {
+      "id": "visiting",
+      "name": "Visiting Faculty",
+      "description": "Visiting faculty members",
+      "permissions": ["teach", "leave_apply", "guest_research"],
+      "leaveCategories": ["casual", "medical"],
+      "maxCasualLeave": 3,
+      "maxEarnedLeave": 0,
+      "temporary": true,
+      "maxTenure": "2 years",
+      "benefits": ["basic_medical"]
+    }
+  ]
+}

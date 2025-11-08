@@ -1,0 +1,100 @@
+{
+  "departments": [
+    {
+      "id": "cs",
+      "name": "Computer Science",
+      "code": "CS",
+      "description": "Computer Science and Engineering",
+      "hod": "Dr. John Smith",
+      "established": "1995"
+    },
+    {
+      "id": "ee",
+      "name": "Electrical Engineering", 
+      "code": "EE",
+      "description": "Electrical and Electronics Engineering",
+      "hod": "Dr. Sarah Johnson",
+      "established": "1990"
+    },
+    {
+      "id": "me",
+      "name": "Mechanical Engineering",
+      "code": "ME", 
+      "description": "Mechanical Engineering",
+      "hod": "Dr. Michael Brown",
+      "established": "1988"
+    },
+    {
+      "id": "ce",
+      "name": "Civil Engineering",
+      "code": "CE",
+      "description": "Civil Engineering", 
+      "hod": "Dr. Emily Davis",
+      "established": "1985"
+    },
+    {
+      "id": "math",
+      "name": "Mathematics",
+      "code": "MATH",
+      "description": "Mathematics Department",
+      "hod": "Dr. Robert Wilson",
+      "established": "1980"
+    },
+    {
+      "id": "physics",
+      "name": "Physics",
+      "code": "PHY",
+      "description": "Physics Department",
+      "hod": "Dr. Lisa Anderson",
+      "established": "1982"
+    },
+    {
+      "id": "chemistry",
+      "name": "Chemistry",
+      "code": "CHEM",
+      "description": "Chemistry Department",
+      "hod": "Dr. David Miller",
+      "established": "1983"
+    },
+    {
+      "id": "biology",
+      "name": "Biology",
+      "code": "BIO",
+      "description": "Biology Department",
+      "hod": "Dr. Jennifer Taylor",
+      "established": "1987"
+    },
+    {
+      "id": "english",
+      "name": "English",
+      "code": "ENG",
+      "description": "English Literature Department",
+      "hod": "Dr. Christopher Lee",
+      "established": "1975"
+    },
+    {
+      "id": "history",
+      "name": "History",
+      "code": "HIST",
+      "description": "History Department",
+      "hod": "Dr. Amanda White",
+      "established": "1978"
+    },
+    {
+      "id": "economics",
+      "name": "Economics",
+      "code": "ECON",
+      "description": "Economics Department",
+      "hod": "Dr. James Garcia",
+      "established": "1992"
+    },
+    {
+      "id": "psychology",
+      "name": "Psychology",
+      "code": "PSY",
+      "description": "Psychology Department",
+      "hod": "Dr. Maria Rodriguez",
+      "established": "1998"
+    }
+  ]
+}
