@@ -56,9 +56,9 @@ const addUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const [result] = await pool.execute(
-      `INSERT INTO faculty (firstName, lastName, email, password, department, employeeId, designation, facultyType, joiningDate, role, is_approved, approved_by, approved_at) 
+      `INSERT INTO faculty (firstName, lastName, email, password, department, employeeId, designation, faculty_type_id, joiningDate, role, is_approved, approved_by, approved_at) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?, NOW())`,
-      [firstName, lastName, email, hashedPassword, department, employeeId, designation, facultyType || 'Teaching', joiningDate, role, req.user.facultyId]
+      [firstName, lastName, email, hashedPassword, department, employeeId, designation, facultyType || 'teaching', joiningDate, role, req.user.facultyId]
     );
 
     res.status(201).json({ message: 'User added successfully', userId: result.insertId });

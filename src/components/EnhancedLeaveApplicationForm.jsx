@@ -31,10 +31,12 @@ const EnhancedLeaveApplicationForm = ({ onClose, onSuccess }) => {
   }, []);
 
   useEffect(() => {
-    if (selectedTemplate && selectedLeaveCategory) {
-      fetchFormFields();
+    if (selectedTemplate) {
+      const category = selectedTemplate.leaveCategories?.[0] || '';
+      setSelectedLeaveCategory(category);
+      if (category) fetchFormFields(category);
     }
-  }, [selectedTemplate, selectedLeaveCategory]);
+  }, [selectedTemplate]);
 
   useEffect(() => {
     // Auto-fill application date with current date and make it unchangeable
@@ -73,18 +75,20 @@ const EnhancedLeaveApplicationForm = ({ onClose, onSuccess }) => {
     }
   };
 
-  const fetchFormFields = async () => {
+  const fetchFormFields = async (category) => {
     try {
-      if (!selectedLeaveCategory) return;
+      const leaveCategory = category || selectedLeaveCategory;
+      if (!leaveCategory) return;
       
-      const response = await leaveFormAPI.getFormFields(selectedLeaveCategory, faculty?.facultyType || 'Teaching');
+      const response = await leaveFormAPI.getFormFields(leaveCategory, faculty?.facultyType || 'Teaching');
       
       if (response.data.success) {
-        setFormFields(response.data.formFields);
+        const fields = response.data.formFields || [];
+        setFormFields(fields);
         
         // Initialize form data with default values
         const initialData = {};
-        response.data.formFields.forEach(field => {
+        fields.forEach(field => {
           if (field.defaultValue) {
             initialData[field.name] = field.defaultValue;
           }
@@ -104,18 +108,28 @@ const EnhancedLeaveApplicationForm = ({ onClose, onSuccess }) => {
     if (startDate && endDate) {
       const start = new Date(startDate);
       const end = new Date(endDate);
+      
+      if (end < start) {
+        setCalculatedDays(0);
+        return;
+      }
+      
       const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
-      setCalculatedDays(days);
+      setCalculatedDays(days > 0 ? days : 0);
       
       // Auto-update form data with calculated days
-      const updatedData = { ...formData };
-      if (formFields.some(f => f.name === 'no_of_days_leave')) {
-        updatedData.no_of_days_leave = days;
-      }
-      if (formFields.some(f => f.name === 'no_of_leave_days')) {
-        updatedData.no_of_leave_days = days;
-      }
-      setFormData(updatedData);
+      setFormData(prev => {
+        const updatedData = { ...prev };
+        if (formFields.some(f => f.name === 'no_of_days_leave')) {
+          updatedData.no_of_days_leave = days;
+        }
+        if (formFields.some(f => f.name === 'no_of_leave_days')) {
+          updatedData.no_of_leave_days = days;
+        }
+        return updatedData;
+      });
+    } else {
+      setCalculatedDays(0);
     }
   };
 
@@ -240,16 +254,22 @@ const EnhancedLeaveApplicationForm = ({ onClose, onSuccess }) => {
         );
 
       case 'date':
+        const isApplicationDate = field.name === 'application_date';
+        const minDate = field.name.includes('end') && (formData.leave_start_date || formData.leave_start) 
+          ? (formData.leave_start_date || formData.leave_start) 
+          : undefined;
+        
         return (
           <input
             type="date"
             value={value}
             onChange={(e) => handleInputChange(field.name, e.target.value)}
+            min={minDate}
             className={`w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-              field.name === 'application_date' ? 'bg-gray-100 cursor-not-allowed' : ''
+              isApplicationDate ? 'bg-gray-100 cursor-not-allowed' : ''
             }`}
             required={field.required}
-            readOnly={field.name === 'application_date'}
+            readOnly={isApplicationDate}
           />
         );
 
@@ -306,46 +326,20 @@ const EnhancedLeaveApplicationForm = ({ onClose, onSuccess }) => {
               onChange={(e) => {
                 const template = templates.find(t => t.id === parseInt(e.target.value));
                 setSelectedTemplate(template);
-                setSelectedLeaveCategory(''); // Reset leave category when template changes
-                setFormFields([]);
-                setFormData({});
               }}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
             >
               <option value="">Select Leave Application Template</option>
-              {[...new Map(templates.map(t => [`${t.formName}-${t.staffType}`, t])).values()].map(template => (
+              {templates.map(template => (
                 <option key={template.id} value={template.id}>
-                  {template.formName} ({template.staffType})
+                  {template.formName}
                 </option>
               ))}
             </select>
           </div>
           
-          {selectedTemplate && selectedTemplate.leaveCategories?.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Leave Type *
-              </label>
-              <select
-                value={selectedLeaveCategory}
-                onChange={(e) => {
-                  setSelectedLeaveCategory(e.target.value);
-                  setFormFields([]);
-                  setFormData({});
-                }}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                required
-              >
-                <option value="">Select Leave Type</option>
-                {[...new Set(selectedTemplate.leaveCategories)].map(category => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+
         </div>
 
         {/* Dynamic Form Fields */}
@@ -356,90 +350,37 @@ const EnhancedLeaveApplicationForm = ({ onClose, onSuccess }) => {
             </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Application Date - First and unchangeable */}
-              {formFields.filter(f => f.name === 'application_date').map(field => (
-                <div key={field.name}>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {field.label}
-                    {field.required && <span className="text-red-500 ml-1">*</span>}
-                    <span className="text-gray-500 ml-1">(Auto-filled)</span>
-                  </label>
-                  <input
-                    type="date"
-                    value={formData[field.name] || new Date().toISOString().split('T')[0]}
-                    className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
-                    readOnly
-                  />
-                </div>
-              ))}
-              
-              {/* Auto-filled fields - Second */}
-              {formFields.filter(f => f.auto_fill && f.name !== 'application_date').map(field => (
-                <div key={field.name} className={field.type === 'textarea' ? 'md:col-span-2' : ''}>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {field.label}
-                    {field.required && <span className="text-red-500 ml-1">*</span>}
-                    <span className="text-blue-500 ml-1">(Auto-filled)</span>
-                  </label>
-                  {renderFormField(field)}
-                </div>
-              ))}
-              
-              {/* Leave type - Third */}
-              {formFields.filter(f => f.name === 'leave_type').map(field => (
-                <div key={field.name}>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {field.label}
-                    {field.required && <span className="text-red-500 ml-1">*</span>}
-                  </label>
-                  <input
-                    type="text"
-                    value={selectedLeaveCategory}
-                    className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
-                    readOnly
-                  />
-                </div>
-              ))}
-              
-              {/* Date fields */}
-              {formFields.filter(f => f.type === 'date' && !f.auto_fill).map(field => (
-                <div key={field.name}>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {field.label}
-                    {field.required && <span className="text-red-500 ml-1">*</span>}
-                  </label>
-                  {renderFormField(field)}
-                </div>
-              ))}
-              
-              {/* Auto-calculated fields after dates */}
-              {formFields.filter(f => f.auto_calculate).map(field => (
-                <div key={field.name}>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {field.label}
-                    {field.required && <span className="text-red-500 ml-1">*</span>}
-                    <span className="text-green-500 ml-1">(Auto-calculated)</span>
-                  </label>
-                  {renderFormField(field)}
-                </div>
-              ))}
-              
-              {/* Other fields */}
-              {formFields.filter(f => 
-                !f.auto_fill && 
-                !f.auto_calculate && 
-                f.type !== 'date' && 
-                f.name !== 'leave_type' && 
-                f.name !== 'application_date'
-              ).map(field => (
-                <div key={field.name} className={field.type === 'textarea' ? 'md:col-span-2' : ''}>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {field.label}
-                    {field.required && <span className="text-red-500 ml-1">*</span>}
-                  </label>
-                  {renderFormField(field)}
-                </div>
-              ))}
+              {formFields.map(field => {
+                // Skip adjustment_duties as it's handled separately
+                if (field.name === 'adjustment_duties' || field.type === 'adjustment_table') return null;
+                
+                const isTextarea = field.type === 'textarea';
+                const isAutoFill = field.auto_fill || field.name === 'leave_type';
+                const isAutoCalc = field.autoCalculate || field.auto_calculate;
+                const isAppDate = field.name === 'application_date';
+                
+                return (
+                  <div key={field.name} className={isTextarea ? 'md:col-span-2' : ''}>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {field.label}
+                      {field.required && <span className="text-red-500 ml-1">*</span>}
+                      {isAppDate && <span className="text-gray-500 ml-1">(Auto-filled)</span>}
+                      {isAutoFill && !isAppDate && <span className="text-blue-500 ml-1">(Auto-filled)</span>}
+                      {isAutoCalc && <span className="text-green-500 ml-1">(Auto-calculated)</span>}
+                    </label>
+                    {field.name === 'leave_type' ? (
+                      <input
+                        type="text"
+                        value={selectedLeaveCategory}
+                        className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+                        readOnly
+                      />
+                    ) : (
+                      renderFormField(field)
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             {/* Calculated Days Display */}

@@ -1,7 +1,7 @@
 -- Faculty Management System Database Setup - MySQL Version
 -- =================================================================
 -- This file contains all SQL commands to create the complete nit_faculty database
--- Run with: mysql -u root -p"Naveenaa@0205" < database.sql
+-- Run with: mysql -u root -p < database.sql
 
 CREATE DATABASE IF NOT EXISTS nit_faculty;
 USE nit_faculty;
@@ -86,6 +86,7 @@ CREATE TABLE IF NOT EXISTS faculty (
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     faculty_type_id VARCHAR(50) DEFAULT 'teaching',
+    facultyType VARCHAR(50) DEFAULT 'Teaching',
     gender VARCHAR(20),
     date_of_birth DATE,
     join_quarter VARCHAR(10),
@@ -459,22 +460,22 @@ INSERT IGNORE INTO faculty (firstName, lastName, email, password, phone, departm
 ('Sarah', 'Wilson', 'sarah.wilson@university.edu', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '+1234567895', 'Library', 'LIB001', 'Librarian', 'faculty', 1, 'non_teaching', 'Female'),
 ('Mike', 'Johnson', 'mike.johnson@university.edu', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '+1234567896', 'Accounts', 'ACC001', 'Accountant', 'faculty', 1, 'non_teaching', 'Male');
 
-INSERT IGNORE INTO leave_form_templates (form_name, staff_type, leave_categories, form_fields) VALUES
-('CL Form - Faculty Regular', 'Teaching',
- '["Casual Leave", "Compensatory Leave", "RH Leave", "Special Leave"]',
- '{"name": "leave_type", "label": "Leave Type", "type": "select", "required": true, "options": ["Casual Leave", "Compensatory Leave", "RH Leave", "Special Leave"], "name2": "name", "label2": "Name", "type2": "text", "required2": true, "auto_fill2": "faculty_name", "name3": "designation", "label3": "Designation", "type3": "text", "required3": true, "auto_fill3": "faculty_designation"}'),
+-- Populate leave form templates with proper JSON structure
+INSERT INTO leave_form_templates (form_name, staff_type, leave_categories, form_fields) VALUES
+('Teaching Faculty Casual Leave Application', 'Teaching', '["Casual Leave"]',
+'[{"name":"leave_type","label":"Leave Type","type":"text","required":true,"defaultValue":"Casual Leave","readonly":true,"autoFill":true},{"name":"name","label":"Faculty Name","type":"text","required":true,"autoFill":"faculty_name","readonly":true},{"name":"designation","label":"Designation","type":"text","required":true,"autoFill":"designation","readonly":true},{"name":"department","label":"Department","type":"text","required":true,"autoFill":"department","readonly":true},{"name":"employee_id","label":"Employee ID","type":"text","required":true,"autoFill":"employee_id","readonly":true},{"name":"leave_start_date","label":"Leave Start Date","type":"date","required":true},{"name":"leave_end_date","label":"Leave End Date","type":"date","required":true},{"name":"no_of_days_leave","label":"Number of Days","type":"number","required":true,"autoCalculate":true,"readonly":true},{"name":"reason","label":"Reason for Leave","type":"textarea","required":true,"placeholder":"Please provide detailed reason for leave"},{"name":"contact_during_leave","label":"Contact During Leave","type":"text","required":false,"placeholder":"Phone number or email for emergency contact"},{"name":"application_date","label":"Application Date","type":"date","required":true,"autoFill":"current_date","readonly":true}]'),
 
-('EL Form - Faculty Regular', 'Teaching',
- '["Earned Leave", "Commuted Leave", "Half Pay Leave"]',
- '{"name": "leave_type", "label": "Leave Type", "type": "select", "required": true, "options": ["Earned Leave", "Commuted Leave", "Half Pay Leave"], "name2": "name", "label2": "Name", "type2": "text", "required2": true, "auto_fill2": "faculty_name", "name3": "designation", "label3": "Designation", "type3": "text", "required3": true, "auto_fill3": "faculty_designation"}'),
+('Teaching Faculty Earned Leave Application', 'Teaching', '["Earned Leave"]',
+'[{"name":"leave_type","label":"Leave Type","type":"text","required":true,"defaultValue":"Earned Leave","readonly":true,"autoFill":true},{"name":"name","label":"Faculty Name","type":"text","required":true,"autoFill":"faculty_name","readonly":true},{"name":"designation","label":"Designation","type":"text","required":true,"autoFill":"designation","readonly":true},{"name":"department","label":"Department","type":"text","required":true,"autoFill":"department","readonly":true},{"name":"nature_of_leave","label":"Nature of Leave","type":"select","required":true,"options":["Vacation","Personal","Family","Medical","Other"]},{"name":"leave_start","label":"Leave Start Date","type":"date","required":true},{"name":"leave_end","label":"Leave End Date","type":"date","required":true},{"name":"no_of_leave_days","label":"Number of Leave Days","type":"number","required":true,"autoCalculate":true,"readonly":true},{"name":"address","label":"Address During Leave","type":"textarea","required":true,"placeholder":"Complete address where you can be contacted during leave"},{"name":"contact_info","label":"Contact Information","type":"text","required":true,"placeholder":"Phone number and email"},{"name":"application_date","label":"Application Date","type":"date","required":true,"autoFill":"current_date","readonly":true}]'),
 
-('CL Form - Non Teaching Staff Regular', 'Non-Teaching',
- '["Casual Leave", "Compensatory Leave", "RH Leave"]',
- '{"name": "leave_type", "label": "Leave Type", "type": "select", "required": true, "options": ["Casual Leave", "Compensatory Leave", "RH Leave"], "name2": "name", "label2": "Name", "type2": "text", "required2": true, "auto_fill2": "faculty_name", "name3": "designation", "label3": "Designation", "type3": "text", "required3": true, "auto_fill3": "faculty_designation"}'),
+('Teaching Faculty Medical Leave Application', 'Teaching', '["Medical Leave"]',
+'[{"name":"leave_type","label":"Leave Type","type":"text","required":true,"defaultValue":"Medical Leave","readonly":true,"autoFill":true},{"name":"name","label":"Faculty Name","type":"text","required":true,"autoFill":"faculty_name","readonly":true},{"name":"designation","label":"Designation","type":"text","required":true,"autoFill":"designation","readonly":true},{"name":"department","label":"Department","type":"text","required":true,"autoFill":"department","readonly":true},{"name":"medical_condition","label":"Medical Condition","type":"textarea","required":true,"placeholder":"Brief description of medical condition requiring leave"},{"name":"leave_start_date","label":"Leave Start Date","type":"date","required":true},{"name":"leave_end_date","label":"Leave End Date","type":"date","required":true},{"name":"no_of_days_leave","label":"Number of Days","type":"number","required":true,"autoCalculate":true,"readonly":true},{"name":"doctor_name","label":"Doctor''s Name","type":"text","required":true,"placeholder":"Name of attending physician"},{"name":"hospital_name","label":"Hospital/Clinic Name","type":"text","required":true,"placeholder":"Name of medical facility"},{"name":"emergency_contact","label":"Emergency Contact","type":"text","required":true,"placeholder":"Contact person and phone number"},{"name":"application_date","label":"Application Date","type":"date","required":true,"autoFill":"current_date","readonly":true}]'),
 
-('EL Form - Non Teaching Staff Regular', 'Non-Teaching',
- '["Earned Leave", "Commuted Leave", "Half Pay Leave"]',
- '{"name": "leave_type", "label": "Leave Type", "type": "select", "required": true, "options": ["Earned Leave", "Commuted Leave", "Half Pay Leave"], "name2": "name", "label2": "Name", "type2": "text", "required2": true, "auto_fill2": "faculty_name", "name3": "designation", "label3": "Designation", "type3": "text", "required3": true, "auto_fill3": "faculty_designation"}');
+('Non-Teaching Staff Casual Leave Application', 'Non-Teaching', '["Casual Leave"]',
+'[{"name":"leave_type","label":"Leave Type","type":"text","required":true,"defaultValue":"Casual Leave","readonly":true,"autoFill":true},{"name":"name","label":"Staff Name","type":"text","required":true,"autoFill":"faculty_name","readonly":true},{"name":"designation","label":"Designation","type":"text","required":true,"autoFill":"designation","readonly":true},{"name":"department","label":"Department/Section","type":"text","required":true,"autoFill":"department","readonly":true},{"name":"employee_id","label":"Employee ID","type":"text","required":true,"autoFill":"employee_id","readonly":true},{"name":"leave_start_date","label":"Leave Start Date","type":"date","required":true},{"name":"leave_end_date","label":"Leave End Date","type":"date","required":true},{"name":"no_of_days_leave","label":"Number of Days","type":"number","required":true,"autoCalculate":true,"readonly":true},{"name":"reason","label":"Reason for Leave","type":"textarea","required":true,"placeholder":"Please provide detailed reason for leave"},{"name":"contact_during_leave","label":"Contact During Leave","type":"text","required":false,"placeholder":"Phone number for emergency contact"},{"name":"application_date","label":"Application Date","type":"date","required":true,"autoFill":"current_date","readonly":true}]'),
+
+('Contract Faculty Casual Leave Application', 'Teaching', '["Casual Leave"]',
+'[{"name":"leave_type","label":"Leave Type","type":"text","required":true,"defaultValue":"Casual Leave","readonly":true,"autoFill":true},{"name":"name","label":"Faculty Name","type":"text","required":true,"autoFill":"faculty_name","readonly":true},{"name":"designation","label":"Designation","type":"text","required":true,"autoFill":"designation","readonly":true},{"name":"department","label":"Department","type":"text","required":true,"autoFill":"department","readonly":true},{"name":"contract_period","label":"Contract Period","type":"text","required":true,"placeholder":"e.g., Jan 2024 - Dec 2024"},{"name":"leave_start_date","label":"Leave Start Date","type":"date","required":true},{"name":"leave_end_date","label":"Leave End Date","type":"date","required":true},{"name":"no_of_days_leave","label":"Number of Days","type":"number","required":true,"autoCalculate":true,"readonly":true},{"name":"reason","label":"Reason for Leave","type":"textarea","required":true,"placeholder":"Please provide detailed reason for leave"},{"name":"contact_during_leave","label":"Contact During Leave","type":"text","required":true,"placeholder":"Phone number for emergency contact"},{"name":"application_date","label":"Application Date","type":"date","required":true,"autoFill":"current_date","readonly":true}]');
 
 INSERT IGNORE INTO leave_accrual_rules (
     rule_name, faculty_type_id, leave_type_id, accrual_period, accrual_amount,
@@ -506,3 +507,56 @@ INSERT IGNORE INTO leave_accrual_rules (
  '{"unlimited": true, "medical_certificate_required": true}');
 
 COMMIT;
+
+-- =================================================================
+-- Fix for missing columns
+-- =================================================================
+SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+    WHERE TABLE_SCHEMA = 'nit_faculty' AND TABLE_NAME = 'faculty_leave_entitlements' 
+    AND COLUMN_NAME = 'monthly_accrual_rate');
+SET @sql = IF(@col_exists = 0, 
+    'ALTER TABLE faculty_leave_entitlements ADD COLUMN monthly_accrual_rate DECIMAL(5,2) DEFAULT 0.00', 
+    'SELECT "Column already exists"');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+    WHERE TABLE_SCHEMA = 'nit_faculty' AND TABLE_NAME = 'faculty_leave_entitlements' 
+    AND COLUMN_NAME = 'yearly_accrual_rate');
+SET @sql = IF(@col_exists = 0, 
+    'ALTER TABLE faculty_leave_entitlements ADD COLUMN yearly_accrual_rate DECIMAL(5,2) DEFAULT 0.00', 
+    'SELECT "Column already exists"');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+    WHERE TABLE_SCHEMA = 'nit_faculty' AND TABLE_NAME = 'faculty_leave_entitlements' 
+    AND COLUMN_NAME = 'accrual_calculation_method');
+SET @sql = IF(@col_exists = 0, 
+    'ALTER TABLE faculty_leave_entitlements ADD COLUMN accrual_calculation_method VARCHAR(20) DEFAULT "monthly"', 
+    'SELECT "Column already exists"');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+    WHERE TABLE_SCHEMA = 'nit_faculty' AND TABLE_NAME = 'faculty_leave_entitlements' 
+    AND COLUMN_NAME = 'working_days_per_month');
+SET @sql = IF(@col_exists = 0, 
+    'ALTER TABLE faculty_leave_entitlements ADD COLUMN working_days_per_month INT DEFAULT 22', 
+    'SELECT "Column already exists"');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+    WHERE TABLE_SCHEMA = 'nit_faculty' AND TABLE_NAME = 'faculty_leave_entitlements' 
+    AND COLUMN_NAME = 'proration_method');
+SET @sql = IF(@col_exists = 0, 
+    'ALTER TABLE faculty_leave_entitlements ADD COLUMN proration_method VARCHAR(20) DEFAULT "monthly"', 
+    'SELECT "Column already exists"');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+    WHERE TABLE_SCHEMA = 'nit_faculty' AND TABLE_NAME = 'faculty' 
+    AND COLUMN_NAME = 'facultyType');
+SET @sql = IF(@col_exists = 0, 
+    'ALTER TABLE faculty ADD COLUMN facultyType VARCHAR(50) DEFAULT "Teaching"', 
+    'SELECT "Column already exists"');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+
