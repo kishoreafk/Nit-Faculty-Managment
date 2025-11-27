@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import { pool } from '../config/database.js';
 import { AuthRequest } from '../middleware/auth.js';
 
@@ -55,14 +55,14 @@ export const login = async (req: Request, res: Response) => {
     
     const accessToken = jwt.sign(
       { id: user.id, email: user.email, role: user.role_name },
-      process.env.JWT_SECRET || 'default-secret',
-      { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
+      (process.env.JWT_SECRET || 'default-secret') as string,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '1h' } as any
     );
     
     const refreshToken = jwt.sign(
       { id: user.id },
-      process.env.JWT_REFRESH_SECRET || 'default-refresh-secret',
-      { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' }
+      (process.env.JWT_REFRESH_SECRET || 'default-refresh-secret') as string,
+      { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' } as any
     );
     
     await pool.execute(
