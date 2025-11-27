@@ -41,9 +41,10 @@ export const applyLeave = async (req: AuthRequest, res: Response) => {
        attachments ? JSON.stringify(attachments) : null]
     );
     
-    const [[{ '@leave_id': leaveId, '@result': outcome }]] = await connection.execute(
-      `SELECT @leave_id, @result`
+    const [rows]: any = await connection.execute(
+      `SELECT @leave_id as leave_id, @result as result`
     );
+    const { leave_id: leaveId, result: outcome } = rows[0];
     
     const errorMessages: Record<string, string> = {
       'SUCCESS': 'Leave application submitted successfully',
