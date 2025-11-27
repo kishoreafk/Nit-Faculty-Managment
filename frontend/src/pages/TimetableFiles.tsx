@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { formatDate, formatDateTime } from '../utils/dateFormat';
+import { formatDateTime } from '../utils/dateFormat';
 
 interface TimetableFile {
   id: number;

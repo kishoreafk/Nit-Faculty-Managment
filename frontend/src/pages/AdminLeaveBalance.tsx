@@ -10,12 +10,6 @@ interface Faculty {
   designation: string;
 }
 
-interface LeaveType {
-  id: number;
-  name: string;
-  code: string;
-}
-
 interface LeaveBalance {
   leave_type_id: number;
   name: string;
@@ -27,7 +21,6 @@ interface LeaveBalance {
 
 export default function AdminLeaveBalance() {
   const [faculties, setFaculties] = useState<Faculty[]>([]);
-  const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
   const [selectedFaculty, setSelectedFaculty] = useState<number | null>(null);
   const [balances, setBalances] = useState<LeaveBalance[]>([]);
   const [loading, setLoading] = useState(false);

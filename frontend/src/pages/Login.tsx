@@ -1,14 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { motion } from 'framer-motion';
 import api from '../utils/api';
-import { useAuth } from '../hooks/useAuth';
 
 export default function Login() {
   const { register, handleSubmit } = useForm();
-  const { login } = useAuth();
-  const navigate = useNavigate();
   const [error, setError] = useState('');
 
   useEffect(() => {

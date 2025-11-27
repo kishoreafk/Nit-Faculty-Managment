@@ -13,15 +13,7 @@ export default function Dashboard() {
     api.get('/dashboard/summary').then((res) => setSummary(res.data));
   }, []);
 
-  const modules = [
-    { name: 'Leave Management', icon: Calendar, path: '/leave', color: 'bg-blue-500', roles: ['HOD', 'FACULTY'] },
-    { name: 'Product Requests', icon: Package, path: '/products', color: 'bg-orange-500', roles: ['HOD', 'FACULTY'] },
-    { name: 'Faculty Approvals', icon: FileText, path: '/admin/approvals', color: 'bg-red-500', roles: ['ADMIN'] },
-    { name: 'Product Reviews', icon: Package, path: '/admin/product-reviews', color: 'bg-purple-500', roles: ['ADMIN'] },
-    { name: 'Admin Logs', icon: FileText, path: '/admin/logs', color: 'bg-gray-700', roles: ['ADMIN'] }
-  ];
 
-  const visibleModules = modules.filter(m => !m.roles || m.roles.includes(profile?.role_name));
 
   const isAdmin = profile?.role_name === 'ADMIN' || profile?.role_name === 'SUPER_ADMIN';
 
@@ -171,7 +163,7 @@ export default function Dashboard() {
                 >
                   <div className="flex items-center justify-between mb-4">
                     <module.icon className="w-8 h-8 group-hover:scale-110 transition-transform" />
-                    {module.count !== undefined && (
+                    {'count' in module && module.count !== undefined && (
                       <span className="bg-white/20 text-white font-bold text-lg px-3 py-1 rounded-full">
                         {module.count}
                       </span>

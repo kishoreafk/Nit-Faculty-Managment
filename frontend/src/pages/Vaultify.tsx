@@ -90,7 +90,7 @@ export default function Vaultify() {
     }
   };
 
-  const handleDownload = (id: number, filename: string) => {
+  const handleDownload = (id: number) => {
     window.open(`${api.defaults.baseURL}/vaultify/files/${id}/download`, '_blank');
   };
 
@@ -243,7 +243,7 @@ export default function Vaultify() {
                           </button>
                         )}
                         <button
-                          onClick={() => handleDownload(file.id, file.original_filename)}
+                          onClick={() => handleDownload(file.id)}
                           className="text-green-600 hover:underline"
                         >
                           Download

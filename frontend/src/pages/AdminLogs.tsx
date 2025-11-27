@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search } from 'lucide-react';
 import api from '../utils/api';
 import { formatDateTime } from '../utils/dateFormat';
 import { useNavigate } from 'react-router-dom';
