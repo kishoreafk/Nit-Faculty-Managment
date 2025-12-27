@@ -4,13 +4,19 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'nit',
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME || 'faculty_management',
+  host: process.env.DB_HOST as string,
+  user: process.env.DB_USER as string,
+  password: process.env.DB_PASSWORD as string,
+  database: process.env.DB_NAME as string,
+  port: Number(process.env.DB_PORT) || 4000,
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
+  queueLimit: 0,
+  ssl: {
+    // TiDB requires SSL. This setting allows it to connect securely.
+    minVersion: 'TLSv1.2',
+    rejectUnauthorized: true
+  }
 });
 
 export const testConnection = async () => {
