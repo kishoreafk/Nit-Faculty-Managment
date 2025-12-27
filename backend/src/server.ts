@@ -12,8 +12,9 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Add your Vercel URL here. Keep localhost for testing.
+// Add your Vercel URLs here. Keep localhost for testing.
 const allowedOrigins = [
+  'https://faculty-management-nit.vercel.app',
   'https://faculty-management-re89lvpnc-kishores-projects-9633ca02.vercel.app',
   'http://localhost:5173'
 ];
