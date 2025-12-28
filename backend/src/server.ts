@@ -14,9 +14,7 @@ const PORT = process.env.PORT || 5000;
 
 // Add your Vercel URLs here. Keep localhost for testing.
 const allowedOrigins = [
-  'https://faculty-management-nit.vercel.app',
-  'https://faculty-management-re89lvpnc-kishores-projects-9633ca02.vercel.app',
-  'http://localhost:5173'
+  'https://faculty-management-nbcvpe3rk-kishores-projects-9633ca02.vercel.app'
 ];
 
 app.use(cors({
