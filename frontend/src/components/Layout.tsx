@@ -39,42 +39,48 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const fetchNotifications = () => {
+      // Only fetch if document is visible to reduce unnecessary requests
+      if (document.hidden) return;
+
       api.get('/dashboard/notifications').then((res) => setNotificationCount(res.data.total));
       api.get('/dashboard/notifications/list').then((res) => setNotifications(res.data.notifications || []));
     };
-    
+
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 5000);
-    
+    // Reduced polling frequency from 5 seconds to 30 seconds to minimize server load
+    const interval = setInterval(fetchNotifications, 30000);
+
     const handleNotificationUpdate = () => {
       fetchNotifications();
     };
-    
+
     const handleVisibilityChange = () => {
+      // Only fetch when tab becomes visible, not when it becomes hidden
       if (!document.hidden) {
         fetchNotifications();
       }
     };
-    
+
+    const handleFocus = () => {
+      // Only fetch on focus if tab was previously hidden
+      if (!document.hidden) {
+        fetchNotifications();
+      }
+    };
+
     window.addEventListener('notificationUpdate', handleNotificationUpdate);
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', fetchNotifications);
-    
+    window.addEventListener('focus', handleFocus);
+
     return () => {
       clearInterval(interval);
       window.removeEventListener('notificationUpdate', handleNotificationUpdate);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', fetchNotifications);
+      window.removeEventListener('focus', handleFocus);
     };
   }, []);
 
-  useEffect(() => {
-    const fetchNotifications = () => {
-      api.get('/dashboard/notifications').then((res) => setNotificationCount(res.data.total));
-      api.get('/dashboard/notifications/list').then((res) => setNotifications(res.data.notifications || []));
-    };
-    fetchNotifications();
-  }, [location.pathname]);
+
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
