@@ -2,49 +2,54 @@ import { Response } from 'express';
 import { pool } from '../config/database.js';
 import { AuthRequest } from '../middleware/auth.js';
 import bcrypt from 'bcrypt';
+import { parsePagination } from '../utils/pagination.js';
+import { trySendMail } from '../utils/mailer.js';
 
 export const getAllUsers = async (req: AuthRequest, res: Response) => {
   try {
-    console.log('📥 getAllUsers called with query:', req.query);
-    const { query = '', status = 'active', role = '', page = '1', pageSize = '25', department = '' } = req.query;
-    const offset = (Number(page) - 1) * Number(pageSize);
-    
+    // Express query params may be objects/arrays depending on the querystring parser;
+    // mysql2 prepared statements require primitives.
+    const queryText = typeof req.query.query === 'string' ? req.query.query.trim() : '';
+    const status = typeof req.query.status === 'string' ? req.query.status : 'active';
+    const role = typeof req.query.role === 'string' ? req.query.role : '';
+    const department = typeof req.query.department === 'string' ? req.query.department : '';
+
+    const { page, pageSize, limit: rawLimit, offset: rawOffset } = parsePagination(req.query.page, req.query.pageSize, {
+      defaultPageSize: 25,
+      maxPageSize: 100
+    });
+
+    const limit = Number.isSafeInteger(rawLimit) ? rawLimit : 25;
+    const offset = Number.isSafeInteger(rawOffset) ? rawOffset : 0;
+
     let whereClause = 'WHERE 1=1';
     const params: any[] = [];
-    
+
     if (status === 'active') whereClause += ' AND f.deleted = FALSE AND f.active = TRUE';
     else if (status === 'deleted') whereClause += ' AND f.deleted = TRUE';
     else if (status === 'inactive') whereClause += ' AND f.active = FALSE AND f.deleted = FALSE';
-    
-    if (query) {
+
+    if (queryText) {
       whereClause += ' AND (f.name LIKE ? OR f.email LIKE ? OR f.employee_id LIKE ?)';
-      params.push(`%${query}%`, `%${query}%`, `%${query}%`);
+      params.push(`%${queryText}%`, `%${queryText}%`, `%${queryText}%`);
     }
-    
+
     if (role) {
       whereClause += ' AND r.name = ?';
       params.push(role);
     }
-    
+
     if (department) {
       whereClause += ' AND f.department = ?';
       params.push(department);
     }
-    
-    console.log('🔍 Count query:', `SELECT COUNT(*) as total FROM faculty f JOIN roles r ON f.role_id = r.id ${whereClause}`);
-    console.log('🔍 Params:', params);
-    
+
     const [countResult]: any = await pool.execute(
       `SELECT COUNT(*) as total FROM faculty f JOIN roles r ON f.role_id = r.id ${whereClause}`,
       params
     );
-    
-    console.log('✅ Count result:', countResult[0].total);
-    
-    const limit = parseInt(pageSize as string, 10);
-    const offsetInt = parseInt(page as string, 10) > 0 ? (parseInt(page as string, 10) - 1) * limit : 0;
-    
-    const mainQuery = `SELECT f.*, r.name as role_name, ft.name as faculty_type_name,
+
+     const mainQuery = `SELECT f.*, r.name as role_name, ft.name as faculty_type_name,
         (SELECT COUNT(*) FROM leave_applications la WHERE la.faculty_id = f.id AND la.status = 'PENDING') as pending_leave_count,
         (SELECT COUNT(*) FROM product_requests pr WHERE pr.faculty_id = f.id AND pr.status = 'PENDING') as pending_product_count
        FROM faculty f
@@ -52,19 +57,14 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
        JOIN faculty_types ft ON f.faculty_type_id = ft.id
        ${whereClause}
        ORDER BY f.approved ASC, f.name
-       LIMIT ${limit} OFFSET ${offsetInt}`;
-    
-    console.log('🔍 Main query:', mainQuery);
-    console.log('🔍 Main params:', params);
-    
-    const [rows] = await pool.execute(mainQuery, params);
-    
-    console.log('✅ Rows fetched:', Array.isArray(rows) ? rows.length : 0);
+       LIMIT ${limit} OFFSET ${offset}`;
+
+     const [rows] = await pool.execute(mainQuery, params);
     
     res.json({
       total: countResult[0].total,
-      page: Number(page),
-      pageSize: Number(pageSize),
+      page,
+      pageSize,
       items: rows
     });
   } catch (error: any) {
@@ -77,8 +77,7 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
 export const getUserById = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    console.log('📥 getUserById called for id:', id);
-    
+
     const [users]: any = await pool.execute(
       `SELECT f.*, r.name as role_name, ft.name as faculty_type_name
        FROM faculty f
@@ -87,32 +86,29 @@ export const getUserById = async (req: AuthRequest, res: Response) => {
        WHERE f.id = ?`,
       [id]
     );
-    
+
     if (users.length === 0) {
-      console.log('❌ User not found:', id);
       return res.status(404).json({ error: 'User not found' });
     }
-    
+
     const [balances] = await pool.execute(
       `SELECT lb.*, lt.name, lt.code FROM leave_balances lb
        JOIN leave_types lt ON lb.leave_type_id = lt.id
        WHERE lb.faculty_id = ? AND lb.year = YEAR(CURDATE())`,
       [id]
     );
-    
+
     const [pendingLeave] = await pool.execute(
       `SELECT la.*, lt.name as leave_type FROM leave_applications la
        JOIN leave_types lt ON la.leave_type_id = lt.id
        WHERE la.faculty_id = ? AND la.status = 'PENDING'`,
       [id]
     );
-    
+
     const [pendingProducts] = await pool.execute(
       `SELECT * FROM product_requests WHERE faculty_id = ? AND status = 'PENDING'`,
       [id]
     );
-    
-    console.log('✅ User data fetched successfully');
     
     res.json({
       ...users[0],
@@ -128,26 +124,24 @@ export const getUserById = async (req: AuthRequest, res: Response) => {
 
 export const createUser = async (req: AuthRequest, res: Response) => {
   const connection = await pool.getConnection();
-  
+
   try {
-    console.log('📥 createUser called with body:', { ...req.body, password: '***' });
     const { employee_id, name, email, password, department, designation, joining_date, faculty_type_id, role, gender } = req.body;
-    
+
     const hashedPassword = await bcrypt.hash(password, 10);
-    
+
     await connection.beginTransaction();
-    
+
     const [roleResult]: any = await connection.execute('SELECT id FROM roles WHERE name = ?', [role || 'FACULTY']);
     const role_id = roleResult[0].id;
-    
+
     const [result]: any = await connection.execute(
       `INSERT INTO faculty (employee_id, name, email, password_hash, role_id, faculty_type_id, department, designation, doj, gender, approved, created_by_admin)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?)`,
       [employee_id, name, email, hashedPassword, role_id, faculty_type_id, department, designation, joining_date, gender || null, req.user!.id]
     );
-    
+
     const newUserId = result.insertId;
-    console.log('✅ User created with id:', newUserId);
     
     await connection.execute('CALL sp_assign_default_leaves(?)', [newUserId]);
     
@@ -158,6 +152,21 @@ export const createUser = async (req: AuthRequest, res: Response) => {
     );
     
     await connection.commit();
+
+    // Best-effort email: do not send passwords via email.
+    if (email) {
+      const subject = 'Your Faculty Portal account has been created';
+      const text =
+        `Hello ${name || ''},\n\n` +
+        `An administrator has created your Faculty Portal account.\n\n` +
+        `Email: ${email}\n` +
+        `Department: ${department || 'N/A'}\n` +
+        `Designation: ${designation || 'N/A'}\n\n` +
+        `If you were provided a temporary password, please change it immediately after logging in.\n\n` +
+        `Regards,\nFaculty Portal`;
+
+      await trySendMail({ to: email, subject, text });
+    }
     
     res.status(201).json({ message: 'User created successfully', id: newUserId });
   } catch (error: any) {
@@ -262,33 +271,30 @@ export const updateCredentials = async (req: AuthRequest, res: Response) => {
 
 export const deleteUser = async (req: AuthRequest, res: Response) => {
   const connection = await pool.getConnection();
-  
+
   try {
     const { id } = req.params;
     const { reason } = req.body;
-    console.log('📥 deleteUser called for id:', id, 'reason:', reason);
-    
+
     await connection.beginTransaction();
-    
+
     const [users]: any = await connection.execute('SELECT deleted, email, name FROM faculty WHERE id = ? FOR UPDATE', [id]);
-    
+
     if (users.length === 0) {
-      console.log('❌ User not found:', id);
       await connection.rollback();
       return res.status(404).json({ error: 'User not found' });
     }
-    
+
     await connection.execute('UPDATE faculty SET deleted = TRUE, deleted_at = NOW() WHERE id = ?', [id]);
     await connection.execute('UPDATE auth_tokens SET revoked = TRUE, revoked_at = NOW() WHERE faculty_id = ?', [id]);
-    
+
     await connection.execute(
       `INSERT INTO admin_logs (admin_id, action_type, resource_type, resource_id, before_state, after_state, reason, ip_address)
        VALUES (?, 'DELETE_USER', 'faculty', ?, ?, ?, ?, ?)`,
       [req.user!.id, id, JSON.stringify({ deleted: false }), JSON.stringify({ deleted: true }), reason || 'Deleted by admin', req.ip]
     );
-    
+
     await connection.commit();
-    console.log('✅ User deleted successfully:', id);
     res.json({ message: 'User deleted successfully' });
   } catch (error: any) {
     console.error('❌ deleteUser error:', error);
@@ -429,7 +435,11 @@ export const bulkDelete = async (req: AuthRequest, res: Response) => {
 
 export const getPendingLeave = async (req: AuthRequest, res: Response) => {
   try {
-    const { department = '', page = '1', pageSize = '25' } = req.query;
+    const { department = '' } = req.query;
+    const { page, pageSize, limit, offset } = parsePagination(req.query.page, req.query.pageSize, {
+      defaultPageSize: 25,
+      maxPageSize: 100
+    });
     
     let whereClause = "WHERE la.status = 'PENDING'";
     const params: any[] = [];
@@ -439,9 +449,6 @@ export const getPendingLeave = async (req: AuthRequest, res: Response) => {
       params.push(department);
     }
     
-    const limit = parseInt(pageSize as string, 10);
-    const offset = (parseInt(page as string, 10) - 1) * limit;
-    
     const [rows] = await pool.execute(
       `SELECT la.*, f.name as faculty_name, f.department, f.email, lt.name as leave_type, lt.code
        FROM leave_applications la
@@ -449,8 +456,8 @@ export const getPendingLeave = async (req: AuthRequest, res: Response) => {
        JOIN leave_types lt ON la.leave_type_id = lt.id
        ${whereClause}
        ORDER BY la.created_at ASC
-       LIMIT ${limit} OFFSET ${offset}`,
-      params
+       LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
     );
     
     res.json(rows);
@@ -461,7 +468,11 @@ export const getPendingLeave = async (req: AuthRequest, res: Response) => {
 
 export const getPendingProducts = async (req: AuthRequest, res: Response) => {
   try {
-    const { department = '', page = '1', pageSize = '25' } = req.query;
+    const { department = '' } = req.query;
+    const { page, pageSize, limit, offset } = parsePagination(req.query.page, req.query.pageSize, {
+      defaultPageSize: 25,
+      maxPageSize: 100
+    });
     
     let whereClause = "WHERE pr.status = 'PENDING'";
     const params: any[] = [];
@@ -471,17 +482,14 @@ export const getPendingProducts = async (req: AuthRequest, res: Response) => {
       params.push(department);
     }
     
-    const limit = parseInt(pageSize as string, 10);
-    const offset = (parseInt(page as string, 10) - 1) * limit;
-    
     const [rows] = await pool.execute(
       `SELECT pr.*, f.name as faculty_name, f.department, f.email
        FROM product_requests pr
        JOIN faculty f ON pr.faculty_id = f.id
        ${whereClause}
        ORDER BY pr.created_at ASC
-       LIMIT ${limit} OFFSET ${offset}`,
-      params
+       LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
     );
     
     res.json(rows);
@@ -555,7 +563,7 @@ export const approveUser = async (req: AuthRequest, res: Response) => {
     
     await connection.beginTransaction();
     
-    const [users]: any = await connection.execute('SELECT approved FROM faculty WHERE id = ? FOR UPDATE', [id]);
+    const [users]: any = await connection.execute('SELECT approved, email, name FROM faculty WHERE id = ? FOR UPDATE', [id]);
     
     if (users.length === 0) {
       await connection.rollback();
@@ -576,6 +584,20 @@ export const approveUser = async (req: AuthRequest, res: Response) => {
     );
     
     await connection.commit();
+
+    const email = users[0].email as string | null | undefined;
+    const name = users[0].name as string | null | undefined;
+
+    if (email) {
+      const subject = 'Your Faculty Portal account has been approved';
+      const text =
+        `Hello ${name || ''},\n\n` +
+        `Your account has been approved by an administrator. You can now log in to the Faculty Portal.\n\n` +
+        `Regards,\nFaculty Portal`;
+
+      await trySendMail({ to: email, subject, text });
+    }
+
     res.json({ message: 'User approved successfully' });
   } catch (error: any) {
     await connection.rollback();
@@ -704,7 +726,7 @@ export const bulkApprove = async (req: AuthRequest, res: Response) => {
     
     for (const id of ids) {
       try {
-        const [users]: any = await connection.execute('SELECT approved FROM faculty WHERE id = ?', [id]);
+        const [users]: any = await connection.execute('SELECT approved, email, name FROM faculty WHERE id = ?', [id]);
         if (users.length > 0 && !users[0].approved) {
           await connection.execute('UPDATE faculty SET approved = TRUE WHERE id = ?', [id]);
           await connection.execute(
@@ -712,6 +734,20 @@ export const bulkApprove = async (req: AuthRequest, res: Response) => {
              VALUES (?, 'BULK_APPROVE_USER', 'faculty', ?, ?, ?)`,
             [req.user!.id, id, JSON.stringify({ approved: true }), req.ip]
           );
+
+          const email = users[0].email as string | null | undefined;
+          const name = users[0].name as string | null | undefined;
+
+          if (email) {
+            const subject = 'Your Faculty Portal account has been approved';
+            const text =
+              `Hello ${name || ''},\n\n` +
+              `Your account has been approved by an administrator. You can now log in to the Faculty Portal.\n\n` +
+              `Regards,\nFaculty Portal`;
+
+            await trySendMail({ to: email, subject, text });
+          }
+
           succeeded++;
         } else {
           failed++;

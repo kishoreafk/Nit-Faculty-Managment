@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { pool } from '../config/database.js';
 import { AuthRequest } from '../middleware/auth.js';
 import { RowDataPacket } from 'mysql2';
+import { trySendMail } from '../utils/mailer.js';
 
 export const getLeaveBalance = async (req: AuthRequest, res: Response) => {
   try {
@@ -125,6 +126,16 @@ export const updateLeaveStatus = async (req: AuthRequest, res: Response) => {
 
     
     await connection.beginTransaction();
+
+    const [[leaveInfo]]: any = await connection.execute(
+      `SELECT la.id, la.start_date, la.end_date, lt.name as leave_type,
+              f.email as faculty_email, f.name as faculty_name
+       FROM leave_applications la
+       JOIN leave_types lt ON la.leave_type_id = lt.id
+       JOIN faculty f ON la.faculty_id = f.id
+       WHERE la.id = ?`,
+      [id]
+    );
     
     const [[leave]]: any = await connection.execute(
       `SELECT status FROM leave_applications WHERE id = ?`,
@@ -154,6 +165,20 @@ export const updateLeaveStatus = async (req: AuthRequest, res: Response) => {
     );
     
     await connection.commit();
+
+    if (leaveInfo?.faculty_email) {
+      const start = leaveInfo.start_date instanceof Date ? leaveInfo.start_date.toISOString().slice(0, 10) : String(leaveInfo.start_date);
+      const end = leaveInfo.end_date instanceof Date ? leaveInfo.end_date.toISOString().slice(0, 10) : String(leaveInfo.end_date);
+      const subject = `Leave application ${String(status).toLowerCase()}`;
+      const text =
+        `Hello ${leaveInfo.faculty_name || ''},\n\n` +
+        `Your leave application (${leaveInfo.leave_type}) from ${start} to ${end} has been ${String(status).toLowerCase()}.\n\n` +
+        `Reviewer note: ${reason}\n\n` +
+        `Regards,\nFaculty Portal`;
+
+      await trySendMail({ to: leaveInfo.faculty_email, subject, text });
+    }
+
     res.json({ message: `Leave ${status.toLowerCase()} successfully` });
   } catch (error: any) {
     await connection.rollback();

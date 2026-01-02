@@ -347,26 +347,41 @@ code .env                    # Create in root directory
 ```env
 # Server Configuration
 PORT=5000
+NODE_ENV=development
 
 # Database Configuration
 DB_HOST=localhost
 DB_USER=root
 DB_PASSWORD=your_mysql_password
 DB_NAME=faculty_management
+DB_PORT=3306
 
 # JWT Configuration
 JWT_SECRET=your_super_secret_jwt_key_here
 JWT_REFRESH_SECRET=your_super_secret_refresh_key_here
+JWT_EXPIRES_IN=1h
+JWT_REFRESH_EXPIRES_IN=7d
 
-# Email Configuration (optional)
+# Email Configuration (optional, but recommended for production)
+# If NODE_ENV=production and you trigger actions that send mail (e.g. leave approval),
+# you should set these.
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
+EMAIL_SECURE=false
 EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_app_password
+EMAIL_PASS=your_app_password_or_smtp_password
+EMAIL_FROM=your_email@gmail.com
 
 # File Upload Configuration
-MAX_FILE_SIZE=10485760
-UPLOAD_DIR=./uploads
+MAX_UPLOAD_MB=25
+
+# Frontend (Vite) configuration
+# In dev, Vite proxies /api to VITE_API_PROXY_TARGET.
+# In prod, set VITE_API_BASE_URL to your backend base URL (including /api)
+# if frontend and backend are hosted on different origins.
+VITE_DEV_SERVER_PORT=5173
+VITE_API_PROXY_TARGET=http://localhost:5000
+VITE_API_BASE_URL=
 ```
 
 #### 3. **Database Setup**
@@ -424,12 +439,15 @@ npm run dev
 cd backend
 npm run build    # Creates dist/ directory
 
+# Start Backend (production)
+npm start        # Runs node dist/server.js
+
 # Build Frontend
 cd frontend
 npm run build    # Creates dist/ directory
 
-# Start Production Backend
-npm start        # Serves frontend from dist/
+# Preview frontend locally (optional)
+npm run preview
 ```
 
 #### **Default Login Credentials**
@@ -469,6 +487,177 @@ Authorization: Bearer <access_token>
 ```
 
 Tokens are automatically managed by the frontend API client.
+
+---
+
+## 🔌 API Reference (Backend)
+
+### Base URLs
+
+- **API Base**: `/api`
+- **Health Check**: `GET /health` (no auth)
+
+### Auth model
+
+- Most endpoints require `Authorization: Bearer <access_token>`.
+- The backend also validates that the user is **approved**, **active**, and **not deleted**.
+- Role checks are enforced for admin/HOD operations.
+
+### Error format
+
+Most errors return JSON like:
+
+```json
+{ "error": "message" }
+```
+
+### Endpoints
+
+#### Authentication
+
+- `POST /api/auth/register`
+   - Body: `{ employee_id, name, email, password, faculty_type_id, department, designation, doj }`
+   - Result: registration is created as `approved = FALSE` (admin must approve)
+- `POST /api/auth/login`
+   - Body: `{ email, password }`
+   - Result: `{ accessToken, refreshToken, user: { id, name, email, role, department } }`
+- `GET /api/auth/profile` (auth)
+- `GET /api/auth/faculty-types`
+
+#### Dashboard (auth)
+
+- `GET /api/dashboard/summary`
+- `GET /api/dashboard/notifications` (admin/super-admin only returns counts; others return `{ total: 0 }`)
+- `GET /api/dashboard/notifications/list` (admin/super-admin)
+
+#### Faculty approval + admin logs (ADMIN/SUPER_ADMIN)
+
+- `GET /api/admin/pending-faculty`
+- `PUT /api/admin/faculty/:id/approve` body: `{ role?: "FACULTY"|"HOD"|"ADMIN"|"SUPER_ADMIN" }`
+- `PUT /api/admin/faculty/:id/reject` body: `{ reason?: string }`
+- `GET /api/admin/faculty`
+- `GET /api/admin/logs` (supports query params like `adminId`, `action_type`, `resource_type`, `from`, `to`, `page`, `pageSize`)
+- `GET /api/admin/logs/:id`
+
+#### Leave management
+
+- `GET /api/leave/balance` (auth)
+- `GET /api/leave/eligibility` (auth)
+- `GET /api/leave/history` (auth)
+- `POST /api/leave/apply` (auth)
+   - Body (core fields):
+      ```json
+      {
+         "leave_type_id": 1,
+         "start_date": "2026-01-10",
+         "end_date": "2026-01-12",
+         "total_days": 3,
+         "reason": "Medical",
+         "leave_category": "FULL_DAY",
+         "is_during_exam": false,
+         "contact_during_leave": "9999999999",
+         "remarks": "optional",
+         "attachments": [],
+         "adjustments": []
+      }
+      ```
+   - Notes: core validation is implemented in MySQL stored procedures (e.g. overlapping leave, balance, probation/service/gender rules).
+- `GET /api/leave/applications` (auth)
+- `GET /api/leave/:id` (auth)
+- `DELETE /api/leave/:id` (auth)
+- `GET /api/leave/pending` (ADMIN/HOD/SUPER_ADMIN)
+- `PUT /api/leave/:id/status` (ADMIN/HOD/SUPER_ADMIN)
+   - Body: `{ status: "APPROVED"|"REJECTED", reason: string }` (reason is required)
+- `GET /api/leave/alternate-faculty` (auth)
+- `GET /api/leave/adjustments/my` (auth)
+- `PUT /api/leave/adjustments/:id/confirm` (auth)
+
+Leave accrual (ADMIN/SUPER_ADMIN):
+
+- `POST /api/admin/leave/accrual/monthly`
+- `POST /api/admin/leave/accrual/yearly`
+- `POST /api/admin/leave/carry-forward`
+- `GET /api/admin/leave/balance/:facultyId`
+- `PUT /api/admin/leave/balance`
+
+#### Product requests
+
+- `POST /api/product-requests` (auth) body: `{ item_name, quantity, reason }`
+- `GET /api/product-requests/my` (auth)
+- `GET /api/product-requests/:id` (auth)
+- `DELETE /api/product-requests/:id` (auth; only `PENDING` owned requests)
+
+Admin review:
+
+- `GET /api/admin/product-requests` (ADMIN/SUPER_ADMIN; optional `?status=`)
+- `PUT /api/admin/product-requests/:id/review` (ADMIN/SUPER_ADMIN) body: `{ action: "APPROVED"|"REJECTED", reason: string }`
+
+#### Timetable
+
+- `POST /api/timetable` (auth) body: `{ course_id, faculty_id, day_of_week, start_time, end_time, room_no, mode }`
+- `GET /api/timetable/my` (auth)
+- `PUT /api/timetable/:id` (ADMIN/SUPER_ADMIN)
+- `DELETE /api/timetable/:id` (ADMIN/SUPER_ADMIN)
+
+#### Dynamic forms
+
+- `GET /api/forms/:category` (auth)
+- `POST /api/forms/submit` (auth) body: `{ form_id, category, payload }`
+- `GET /api/forms/submissions` (auth)
+
+#### Admin user management (mounted under `/api/admin/...`)
+
+- `GET /api/admin/users` (ADMIN/SUPER_ADMIN; supports `query`, `status`, `role`, `department`, `page`, `pageSize`)
+- `GET /api/admin/users/:id`
+- `POST /api/admin/users`
+- `PUT /api/admin/users/:id`
+- `PUT /api/admin/users/:id/credentials`
+- `DELETE /api/admin/users/:id`
+- `POST /api/admin/users/:id/restore`
+- `POST /api/admin/users/:id/promote`
+- `POST /api/admin/users/:id/force-logout`
+- `POST /api/admin/users/bulk-delete`
+- `DELETE /api/admin/users/:id/permanent` (SUPER_ADMIN)
+- `POST /api/admin/users/bulk-permanent-delete` (SUPER_ADMIN)
+
+Pending shortcuts:
+
+- `GET /api/admin/pending/leave`
+- `GET /api/admin/pending/product`
+- `PUT /api/admin/leave/:id/review`
+- `PUT /api/admin/product/:id/review`
+
+Approval shortcuts:
+
+- `POST /api/admin/users/:id/approve`
+- `POST /api/admin/users/:id/reject`
+- `POST /api/admin/users/bulk-approve`
+
+#### Vaultify (document vault)
+
+- `POST /api/vaultify/upload` (auth, multipart/form-data)
+   - Form fields: `file` (single), plus `title`, `description?`, `category_id?`, `visibility?` (`PRIVATE|PUBLIC|DEPARTMENT`)
+- `GET /api/vaultify/my` (auth; supports `query`, `category`, `visibility`, `page`, `pageSize`)
+- `GET /api/vaultify/files/:id/download` (auth)
+- `GET /api/vaultify/files/:id/preview` (auth; only PDF/images)
+- `DELETE /api/vaultify/files/:id` (auth; owner or admin)
+- `GET /api/vaultify/categories` (auth)
+- `GET /api/admin/vaultify/files` (ADMIN/SUPER_ADMIN)
+
+#### Timetable files
+
+- `POST /api/timetables/upload` (auth, multipart/form-data)
+- `GET /api/timetables/my` (auth; supports `year`, `semester`, `page`, `pageSize`)
+- `GET /api/timetables/:id/download` (auth)
+- `GET /api/timetables/:id/preview` (auth; only PDF/images)
+- `DELETE /api/timetables/:id` (auth)
+- `GET /api/timetables/assigned/me` (auth)
+
+Admin assignment:
+
+- `GET /api/admin/timetables` (ADMIN/SUPER_ADMIN)
+- `POST /api/admin/timetables/assign` body: `{ facultyId, fileId }`
+- `POST /api/admin/timetables/unassign` body: `{ facultyId }`
 
 ---
 
@@ -521,16 +710,10 @@ Tokens are automatically managed by the frontend API client.
 ### Running Tests
 
 ```bash
-# Backend tests
-cd backend
-npm test
-
-# Frontend tests
-cd frontend
-npm test
-
-# E2E tests
-npm run test:e2e
+# No test runner is currently wired in package.json.
+# Recommended smoke checks:
+cd backend && npm run build
+cd ../frontend && npm run build
 ```
 
 ### Test Coverage
@@ -560,17 +743,46 @@ npm run preview
 
 ### Production Deployment
 
-#### **Docker Deployment**
-```dockerfile
-# Dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY . .
-EXPOSE 5000
-CMD ["npm", "start"]
-```
+### Recommended Production Topology
+
+This repo contains **two apps**:
+
+- **Backend (Express + MySQL)**: runs as a long-lived Node process and needs a MySQL database.
+- **Frontend (Vite + React)**: static build artifacts hosted on a CDN (e.g. Vercel).
+
+Because the backend writes uploaded files to disk (under `backend/uploads/...`), it needs **persistent storage**. Pure serverless platforms with ephemeral filesystems are not a good fit unless you replace storage with S3/GCS (not implemented here).
+
+### Deploy Backend (Node host)
+
+1. Provision a MySQL 8 database and import `database/schema.sql`.
+2. Deploy the backend from `backend/`:
+   - Build: `npm ci` then `npm run build`
+   - Start: `npm start`
+3. Configure environment variables (see `.env` example above). At minimum you need DB + JWT variables.
+4. Ensure a persistent directory is available for uploads:
+   - `backend/uploads/temp`
+   - `backend/uploads/vaultify`
+   - `backend/uploads/timetables`
+
+### Deploy Frontend (Vercel)
+
+The included `vercel.json` deploys only the frontend build output.
+
+1. Set the Vercel build settings:
+   - Build command: `cd frontend && npm ci && npm run build`
+   - Output directory: `frontend/dist`
+2. Set `VITE_API_BASE_URL`:
+   - If backend is hosted at `https://api.example.com` and the API base path is `/api`, set:
+     - `VITE_API_BASE_URL=https://api.example.com/api`
+3. (Optional) If you want the frontend to call `/api` on the same domain, add a Vercel rewrite/proxy rule to forward `/api/*` to your backend.
+
+---
+
+### Notes
+
+- The backend mounts all routes under `/api` and also exposes `GET /health`.
+- In dev, Vite proxies `/api` to `VITE_API_PROXY_TARGET`.
+- If you host frontend and backend on different origins without a proxy, you may need to enable CORS in the backend.
 
 
 <div align="center">

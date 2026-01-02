@@ -1,10 +1,15 @@
 import { Response } from 'express';
 import { pool } from '../config/database.js';
 import { AuthRequest } from '../middleware/auth.js';
+import { parsePagination } from '../utils/pagination.js';
 
 export const getAdminLogs = async (req: AuthRequest, res: Response) => {
   try {
-    const { adminId, action_type, resource_type, from, to, page = '1', pageSize = '50' } = req.query;
+    const { adminId, action_type, resource_type, from, to } = req.query;
+    const { page, pageSize, limit, offset } = parsePagination(req.query.page, req.query.pageSize, {
+      defaultPageSize: 50,
+      maxPageSize: 100
+    });
     
     let query = `SELECT al.*, f.name as admin_name, f.email as admin_email
                  FROM admin_logs al
@@ -42,16 +47,13 @@ export const getAdminLogs = async (req: AuthRequest, res: Response) => {
       params
     ) as any;
     
-    const limit = parseInt(pageSize as string, 10);
-    const offset = (parseInt(page as string, 10) - 1) * limit;
-    query += ` ORDER BY al.created_at DESC LIMIT ${limit} OFFSET ${offset}`;
-    
-    const [items] = await pool.execute(query, params);
+    query += ` ORDER BY al.created_at DESC LIMIT ? OFFSET ?`;
+    const [items] = await pool.execute(query, [...params, Number(limit), Number(offset)]);
     
     res.json({
       total,
-      page: Number(page),
-      pageSize: Number(pageSize),
+      page,
+      pageSize,
       items
     });
   } catch (error: any) {

@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { pool } from '../config/database.js';
 import { AuthRequest } from '../middleware/auth.js';
+import { getJwtConfig } from '../config/env.js';
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -53,16 +54,24 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
     
+    const jwtConfig = getJwtConfig();
+
     const accessToken = jwt.sign(
       { id: user.id, email: user.email, role: user.role_name },
-      (process.env.JWT_SECRET || 'default-secret') as string,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '1h' } as any
+      jwtConfig.secret,
+      {
+        expiresIn: jwtConfig.expiresIn,
+        algorithm: jwtConfig.algorithm
+      } satisfies SignOptions
     );
-    
+
     const refreshToken = jwt.sign(
       { id: user.id },
-      (process.env.JWT_REFRESH_SECRET || 'default-refresh-secret') as string,
-      { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' } as any
+      jwtConfig.refreshSecret,
+      {
+        expiresIn: jwtConfig.refreshExpiresIn,
+        algorithm: jwtConfig.algorithm
+      } satisfies SignOptions
     );
     
     await pool.execute(

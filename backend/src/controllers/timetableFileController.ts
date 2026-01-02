@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { parsePagination } from '../utils/pagination.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,6 +16,14 @@ const UPLOAD_BASE = path.join(__dirname, '../../uploads/timetables');
 if (!fs.existsSync(UPLOAD_BASE)) {
   fs.mkdirSync(UPLOAD_BASE, { recursive: true });
 }
+
+const parseOptionalYear = (raw: unknown): number | null => {
+  if (raw === undefined || raw === null || raw === '') return null;
+  const parsed = typeof raw === 'number' ? raw : Number.parseInt(String(raw), 10);
+  if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) return null;
+  if (parsed < 2000 || parsed > 2100) return null;
+  return parsed;
+};
 
 export const uploadTimetable = async (req: AuthRequest, res: Response) => {
   try {
@@ -29,8 +38,14 @@ export const uploadTimetable = async (req: AuthRequest, res: Response) => {
     const uuid = crypto.randomUUID();
     const ext = path.extname(file.originalname);
     const storedFilename = `${uuid}_v1${ext}`;
-    
-    const facultyDir = path.join(UPLOAD_BASE, facultyId.toString(), year || new Date().getFullYear().toString());
+
+    const yearValue = parseOptionalYear(year);
+    if (year !== undefined && year !== null && year !== '' && yearValue === null) {
+      return res.status(400).json({ error: 'Invalid year' });
+    }
+
+    const yearDir = (yearValue ?? new Date().getFullYear()).toString();
+    const facultyDir = path.join(UPLOAD_BASE, facultyId.toString(), yearDir);
     if (!fs.existsSync(facultyDir)) {
       fs.mkdirSync(facultyDir, { recursive: true });
     }
@@ -45,7 +60,7 @@ export const uploadTimetable = async (req: AuthRequest, res: Response) => {
        mime_type, title, description, year, semester, visibility) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [facultyId, file.originalname, storedFilename, fileSizeKb, file.mimetype, 
-       title, description || null, year || null, semester || null, visibility]
+       title, description || null, yearValue, semester || null, visibility]
     );
 
     await pool.execute(
@@ -69,8 +84,11 @@ export const uploadTimetable = async (req: AuthRequest, res: Response) => {
 export const getMyTimetables = async (req: AuthRequest, res: Response) => {
   try {
     const facultyId = req.user!.id;
-    const { year, semester, page = 1, pageSize = 20 } = req.query;
-    const offset = (Number(page) - 1) * Number(pageSize);
+    const { year, semester } = req.query;
+    const { page, pageSize, limit, offset } = parsePagination(req.query.page, req.query.pageSize, {
+      defaultPageSize: 20,
+      maxPageSize: 100
+    });
 
     let sql = `
       SELECT id, title, description, original_filename, file_size_kb, mime_type, 
@@ -89,7 +107,8 @@ export const getMyTimetables = async (req: AuthRequest, res: Response) => {
       params.push(semester);
     }
 
-    sql += ` ORDER BY created_at DESC LIMIT ${Number(pageSize)} OFFSET ${offset}`;
+    sql += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+    params.push(Number(limit), Number(offset));
 
     const [files] = await pool.execute<RowDataPacket[]>(sql, params);
 
@@ -101,8 +120,8 @@ export const getMyTimetables = async (req: AuthRequest, res: Response) => {
     res.json({ 
       files, 
       total: countResult[0].total,
-      page: Number(page),
-      pageSize: Number(pageSize)
+      page,
+      pageSize
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -116,11 +135,12 @@ export const downloadTimetable = async (req: AuthRequest, res: Response) => {
     const userRole = req.user!.role;
 
     const [files] = await pool.execute<RowDataPacket[]>(
-      `SELECT tf.*, f.department 
-       FROM timetable_files tf 
-       JOIN faculty f ON tf.uploaded_by = f.id 
+      `SELECT tf.*, f.department, uf.department as user_department
+       FROM timetable_files tf
+       JOIN faculty f ON tf.uploaded_by = f.id
+       JOIN faculty uf ON uf.id = ?
        WHERE tf.id = ?`,
-      [id]
+      [userId, id]
     );
 
     if (files.length === 0) {
@@ -131,9 +151,10 @@ export const downloadTimetable = async (req: AuthRequest, res: Response) => {
 
     const isOwner = file.uploaded_by === userId;
     const isAdmin = userRole === 'ADMIN' || userRole === 'SUPER_ADMIN';
-    const isPublic = file.visibility !== 'PRIVATE';
+    const isPublic = file.visibility === 'PUBLIC';
+    const isDepartment = file.visibility === 'DEPARTMENT' && file.department === file.user_department;
 
-    if (!isOwner && !isAdmin && !isPublic) {
+    if (!isOwner && !isAdmin && !isPublic && !isDepartment) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -167,11 +188,12 @@ export const previewTimetable = async (req: AuthRequest, res: Response) => {
     const userRole = req.user!.role;
 
     const [files] = await pool.execute<RowDataPacket[]>(
-      `SELECT tf.*, f.department 
-       FROM timetable_files tf 
-       JOIN faculty f ON tf.uploaded_by = f.id 
+      `SELECT tf.*, f.department, uf.department as user_department
+       FROM timetable_files tf
+       JOIN faculty f ON tf.uploaded_by = f.id
+       JOIN faculty uf ON uf.id = ?
        WHERE tf.id = ?`,
-      [id]
+      [userId, id]
     );
 
     if (files.length === 0) {
@@ -182,9 +204,10 @@ export const previewTimetable = async (req: AuthRequest, res: Response) => {
 
     const isOwner = file.uploaded_by === userId;
     const isAdmin = userRole === 'ADMIN' || userRole === 'SUPER_ADMIN';
-    const isPublic = file.visibility !== 'PRIVATE';
+    const isPublic = file.visibility === 'PUBLIC';
+    const isDepartment = file.visibility === 'DEPARTMENT' && file.department === file.user_department;
 
-    if (!isOwner && !isAdmin && !isPublic) {
+    if (!isOwner && !isAdmin && !isPublic && !isDepartment) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -217,8 +240,11 @@ export const previewTimetable = async (req: AuthRequest, res: Response) => {
 
 export const adminGetAllTimetables = async (req: AuthRequest, res: Response) => {
   try {
-    const { facultyId, query, page = 1, pageSize = 20 } = req.query;
-    const offset = (Number(page) - 1) * Number(pageSize);
+    const { facultyId, query } = req.query;
+    const { page, pageSize, limit, offset } = parsePagination(req.query.page, req.query.pageSize, {
+      defaultPageSize: 20,
+      maxPageSize: 100
+    });
 
     let sql = `
       SELECT tf.id, tf.title, tf.description, tf.original_filename, tf.file_size_kb, 
@@ -239,11 +265,12 @@ export const adminGetAllTimetables = async (req: AuthRequest, res: Response) => 
       params.push(`%${query}%`, `%${query}%`, `%${query}%`);
     }
 
-    sql += ` ORDER BY tf.created_at DESC LIMIT ${Number(pageSize)} OFFSET ${offset}`;
+    sql += ` ORDER BY tf.created_at DESC LIMIT ? OFFSET ?`;
+    params.push(Number(limit), Number(offset));
 
     const [files] = await pool.execute<RowDataPacket[]>(sql, params);
 
-    res.json({ files, page: Number(page), pageSize: Number(pageSize) });
+    res.json({ files, page, pageSize });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

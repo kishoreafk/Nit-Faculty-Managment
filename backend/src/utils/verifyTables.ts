@@ -1,5 +1,6 @@
 import { pool } from '../config/database.js';
 import { RowDataPacket } from 'mysql2';
+import { isProduction } from '../config/env.js';
 
 export const verifyTables = async () => {
   const requiredTables = [
@@ -17,12 +18,12 @@ export const verifyTables = async () => {
       );
       
       if (rows.length === 0) {
-        console.warn(`⚠️  Table '${table}' does not exist`);
+        if (!isProduction) console.warn(`⚠️  Table '${table}' does not exist`);
       } else {
-        console.log(`✅ Table '${table}' exists`);
+        if (!isProduction) console.log(`✅ Table '${table}' exists`);
       }
     }
   } catch (error) {
-    console.error('❌ Error verifying tables:', error);
+    if (!isProduction) console.error('❌ Error verifying tables:', error);
   }
 };

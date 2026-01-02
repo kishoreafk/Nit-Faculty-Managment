@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { pool } from '../config/database.js';
 import { AuthRequest } from '../middleware/auth.js';
+import { trySendMail } from '../utils/mailer.js';
 
 export const getPendingFaculty = async (req: AuthRequest, res: Response) => {
   try {
@@ -25,6 +26,21 @@ export const approveFaculty = async (req: AuthRequest, res: Response) => {
     const { role } = req.body;
     
     await connection.beginTransaction();
+
+    const [facultyRows]: any = await connection.execute(
+      'SELECT email, name, approved FROM faculty WHERE id = ? FOR UPDATE',
+      [id]
+    );
+
+    if (facultyRows.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (facultyRows[0].approved) {
+      await connection.rollback();
+      return res.status(400).json({ error: 'User already approved' });
+    }
     
     let role_id = 4; // Default to FACULTY
     if (role) {
@@ -43,6 +59,20 @@ export const approveFaculty = async (req: AuthRequest, res: Response) => {
     );
     
     await connection.commit();
+
+    const email = facultyRows[0].email as string | null | undefined;
+    const name = facultyRows[0].name as string | null | undefined;
+
+    if (email) {
+      const subject = 'Your Faculty Portal account has been approved';
+      const text =
+        `Hello ${name || ''},\n\n` +
+        `Your account has been approved by an administrator. You can now log in to the Faculty Portal.\n\n` +
+        `Regards,\nFaculty Portal`;
+
+      await trySendMail({ to: email, subject, text });
+    }
+
     res.json({ message: 'Faculty approved and leave balances initialized' });
   } catch (error: any) {
     await connection.rollback();

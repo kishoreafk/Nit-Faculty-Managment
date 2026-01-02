@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { isProduction } from '../config/env.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,9 +16,9 @@ export const initializeStorage = () => {
   uploadDirs.forEach(dir => {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
-      console.log(`✅ Created directory: ${dir}`);
+      if (!isProduction) console.log(`✅ Created directory: ${dir}`);
     }
   });
 
-  console.log('✅ Storage directories initialized');
+  if (!isProduction) console.log('✅ Storage directories initialized');
 };

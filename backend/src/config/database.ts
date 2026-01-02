@@ -1,7 +1,7 @@
 import mysql from 'mysql2/promise';
-import dotenv from 'dotenv';
+import { loadEnv } from './loadEnv.js';
 
-dotenv.config();
+loadEnv();
 
 export const pool = mysql.createPool({
   host: process.env.DB_HOST as string,
@@ -11,12 +11,7 @@ export const pool = mysql.createPool({
   port: Number(process.env.DB_PORT) || 4000,
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0,
-  ssl: {
-    // TiDB requires SSL. This setting allows it to connect securely.
-    minVersion: 'TLSv1.2',
-    rejectUnauthorized: true
-  }
+  queueLimit: 0
 });
 
 export const testConnection = async () => {

@@ -13,7 +13,14 @@ import { getAdminLogs, getLogById } from '../controllers/adminLogsController.js'
 import { authenticate, authorize } from '../middleware/auth.js';
 import adminUserRoutes from './adminUserRoutes.js';
 
-const upload = multer({ dest: 'uploads/temp/' });
+const maxUploadMb = Number(process.env.MAX_UPLOAD_MB) || 25;
+const upload = multer({
+	dest: 'uploads/temp/',
+	limits: {
+		files: 1,
+		fileSize: Math.max(1, Math.floor(maxUploadMb)) * 1024 * 1024
+	}
+});
 
 const router = Router();
 

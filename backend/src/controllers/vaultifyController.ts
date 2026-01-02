@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { parsePagination } from '../utils/pagination.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,6 +16,15 @@ const UPLOAD_BASE = path.join(__dirname, '../../uploads/vaultify');
 if (!fs.existsSync(UPLOAD_BASE)) {
   fs.mkdirSync(UPLOAD_BASE, { recursive: true });
 }
+
+const sha256File = (filePath: string): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const hash = crypto.createHash('sha256');
+    const stream = fs.createReadStream(filePath);
+    stream.on('error', reject);
+    stream.on('data', (chunk) => hash.update(chunk));
+    stream.on('end', () => resolve(hash.digest('hex')));
+  });
 
 export const uploadFile = async (req: AuthRequest, res: Response) => {
   try {
@@ -39,7 +49,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
     const finalPath = path.join(facultyDir, storedFilename);
     fs.renameSync(file.path, finalPath);
 
-    const checksum = crypto.createHash('sha256').update(fs.readFileSync(finalPath)).digest('hex');
+    const checksum = await sha256File(finalPath);
     const fileSizeKb = Math.round(file.size / 1024);
 
     const [result] = await pool.execute<ResultSetHeader>(
@@ -71,10 +81,11 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
 export const getMyFiles = async (req: AuthRequest, res: Response) => {
   try {
     const facultyId = req.user!.id;
-    const { query, category, page = 1, pageSize = 20, visibility } = req.query;
-    const pageNum = parseInt(page as string) || 1;
-    const pageSizeNum = parseInt(pageSize as string) || 20;
-    const offset = (pageNum - 1) * pageSizeNum;
+    const { query, category, visibility } = req.query;
+    const { page, pageSize, limit, offset } = parsePagination(req.query.page, req.query.pageSize, {
+      defaultPageSize: 20,
+      maxPageSize: 100
+    });
 
     let sql = `
       SELECT vf.id, vf.title, vf.description, vf.original_filename, vf.file_size_kb, 
@@ -99,7 +110,8 @@ export const getMyFiles = async (req: AuthRequest, res: Response) => {
       params.push(visibility);
     }
 
-    sql += ` ORDER BY vf.uploaded_at DESC LIMIT ${pageSizeNum} OFFSET ${offset}`;
+    sql += ` ORDER BY vf.uploaded_at DESC LIMIT ? OFFSET ?`;
+    params.push(Number(limit), Number(offset));
 
     const [files] = await pool.execute<RowDataPacket[]>(sql, params);
 
@@ -111,8 +123,8 @@ export const getMyFiles = async (req: AuthRequest, res: Response) => {
     res.json({ 
       files, 
       total: countResult[0].total,
-      page: pageNum,
-      pageSize: pageSizeNum
+      page,
+      pageSize
     });
   } catch (error: any) {
     console.error('Vaultify getMyFiles error:', error);
@@ -202,8 +214,6 @@ export const previewFile = async (req: AuthRequest, res: Response) => {
     const isAdmin = userRole === 'ADMIN' || userRole === 'SUPER_ADMIN';
     const isPublic = file.visibility === 'PUBLIC';
     const isDepartment = file.visibility === 'DEPARTMENT' && file.department === file.user_department;
-
-    console.log('Preview access check:', { fileId: id, userId, isOwner, isAdmin, isPublic, isDepartment, visibility: file.visibility, fileDept: file.department, userDept: file.user_department });
 
     if (!isOwner && !isAdmin && !isPublic && !isDepartment) {
       return res.status(403).json({ error: 'Access denied' });
@@ -298,8 +308,11 @@ export const deleteFile = async (req: AuthRequest, res: Response) => {
 
 export const adminGetAllFiles = async (req: AuthRequest, res: Response) => {
   try {
-    const { facultyId, query, page = 1, pageSize = 20 } = req.query;
-    const offset = (Number(page) - 1) * Number(pageSize);
+    const { facultyId, query } = req.query;
+    const { page, pageSize, limit, offset } = parsePagination(req.query.page, req.query.pageSize, {
+      defaultPageSize: 20,
+      maxPageSize: 100
+    });
 
     let sql = `
       SELECT vf.id, vf.title, vf.description, vf.original_filename, vf.file_size_kb, 
@@ -321,11 +334,12 @@ export const adminGetAllFiles = async (req: AuthRequest, res: Response) => {
       params.push(`%${query}%`, `%${query}%`, `%${query}%`);
     }
 
-    sql += ` ORDER BY vf.uploaded_at DESC LIMIT ${Number(pageSize)} OFFSET ${offset}`;
+    sql += ` ORDER BY vf.uploaded_at DESC LIMIT ? OFFSET ?`;
+    params.push(Number(limit), Number(offset));
 
     const [files] = await pool.execute<RowDataPacket[]>(sql, params);
 
-    res.json({ files, page: Number(page), pageSize: Number(pageSize) });
+    res.json({ files, page, pageSize });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
