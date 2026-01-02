@@ -4,11 +4,11 @@
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3.3-blue.svg)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-18.2.0-blue.svg)](https://reactjs.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-20.10.5-green.svg)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-20.x-green.svg)](https://nodejs.org/)
 [![Express](https://img.shields.io/badge/Express-4.18.2-lightgrey.svg)](https://expressjs.com/)
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-blue.svg)](https://mysql.com/)
 
-**Enterprise-level faculty lifecycle management platform with dynamic forms, leave management, timetable planning, document vault, and performance tracking.**
+**Faculty lifecycle management platform with dynamic forms, leave management, timetable planning, document vault, and dashboard analytics.**
 
 </div>
 
@@ -20,6 +20,7 @@
   - [System Architecture](#system-architecture)
   - [Technology Stack](#technology-stack)
   - [Project Structure](#project-structure)
+- [📚 Detailed Project Overview](#-detailed-project-overview)
 - [✨ Key Features](#-key-features)
   - [Feature Highlights by Role](#feature-highlights-by-role)
 - [🎯 User Guides](#-user-guides)
@@ -72,7 +73,7 @@
 | **Styling** | TailwindCSS | ^3.4.0 | Responsive design system |
 | **Animation** | Framer Motion | ^10.16.16 | Smooth UI transitions |
 | **Forms** | React Hook Form + Zod | ^7.49.2 + ^3.22.4 | Form validation and management |
-| **Backend** | Node.js + Express + TypeScript | ^20.10.5 + ^4.18.2 | API server and business logic |
+| **Backend** | Node.js + Express + TypeScript | 20.x + ^4.18.2 | API server and business logic |
 | **Database** | MySQL 8 | ^8.0 | Data persistence with advanced features |
 | **Auth** | JWT + bcrypt | ^9.0.2 + ^5.1.1 | Secure authentication |
 | **File Upload** | Multer | ^1.4.5 | Document management |
@@ -82,60 +83,88 @@
 ### Project Structure
 
 ```
-NIT Faculty Management/
-├── 📁 backend/                          # Backend application
+Faculty-Management-NIT/
+├── backend/                              # Express + TypeScript API
 │   ├── src/
-│   │   ├── config/
-│   │   │   ├── database.ts             # MySQL connection configuration
-│   │   │   └── index.ts
-│   │   ├── controllers/                 # Request handlers
-│   │   │   ├── adminController.ts       # Admin-specific logic
-│   │   │   ├── authController.ts        # Authentication handling
-│   │   │   ├── dashboardController.ts   # Dashboard data
-│   │   │   ├── leaveController.ts       # Leave management
-│   │   │   ├── formController.ts        # Dynamic forms
-│   │   │   └── userController.ts        # User management
+│   │   ├── server.ts                     # App entry (mounts /api + /health)
+│   │   ├── config/                       # Env + DB config
+│   │   │   ├── database.ts
+│   │   │   ├── env.ts
+│   │   │   └── loadEnv.ts                # Loads repo-root .env
+│   │   ├── controllers/                  # Route handlers (business logic)
+│   │   │   ├── authController.ts
+│   │   │   ├── dashboardController.ts
+│   │   │   ├── adminController.ts
+│   │   │   ├── adminUserController.ts
+│   │   │   ├── adminLogsController.ts
+│   │   │   ├── leaveController.ts
+│   │   │   ├── productController.ts
+│   │   │   ├── timetableController.ts
+│   │   │   ├── timetableFileController.ts
+│   │   │   ├── vaultifyController.ts
+│   │   │   └── formController.ts
+│   │   ├── routes/
+│   │   │   ├── index.ts                  # Defines /api routes
+│   │   │   └── adminUserRoutes.ts        # /api/admin/* user mgmt
 │   │   ├── middleware/
-│   │   │   └── auth.ts                  # JWT authentication middleware
-│   │   ├── routes/                      # API route definitions
-│   │   │   ├── adminUserRoutes.ts       # Admin user management
-│   │   │   ├── index.ts                 # Route aggregator
-│   │   │   └── auth.ts                  # Authentication routes
-│   │   ├── utils/                       # Utility functions
-│   │   │   ├── cronJobs.ts              # Scheduled leave accrual
-│   │   │   ├── timeFormat.ts            # Date/time utilities
-│   │   │   └── initStorage.ts           # File system initialization
-│   │   └── server.ts                    # Express server entry point
-│   ├── uploads/                         # File storage directory
+│   │   │   └── auth.ts                   # JWT auth + role checks
+│   │   └── utils/
+│   │       ├── cronJobs.ts               # Leave accrual + scheduled tasks
+│   │       ├── initStorage.ts            # Ensures uploads dirs exist
+│   │       ├── verifyTables.ts           # Boot-time DB sanity checks
+│   │       ├── mailer.ts                 # Email helper (optional)
+│   │       ├── pagination.ts
+│   │       └── timeFormat.ts
+│   ├── uploads/                          # On-disk storage (needs persistence)
+│   │   ├── temp/
 │   │   ├── timetables/
-│   │   ├── vaultify/
-│   │   └── products/
+│   │   └── vaultify/
 │   └── package.json
-├── 📁 frontend/                         # React application
-│   ├── public/
-│   │   └── index.html                   # HTML template
+├── frontend/                             # React + Vite app
 │   ├── src/
-│   │   ├── components/                  # Reusable UI components
-│   │   │   ├── Layout.tsx              # Main layout wrapper
-│   │   │   └── LeaveApplicationForm.tsx # Leave form component
-│   │   ├── pages/                       # Page components
-│   │   │   ├── AdminLeaveReview.tsx     # Admin leave approvals
-│   │   │   ├── LeaveManagement.tsx      # Faculty leave interface
-│   │   │   ├── Dashboard.tsx            # User dashboard
-│   │   │   └── Login.tsx                # Authentication page
-│   │   ├── hooks/                       # Custom React hooks
-│   │   │   └── useAuth.ts               # Authentication hook
-│   │   └── utils/                       # Frontend utilities
-│   │       ├── api.ts                   # API client
-│   │       └── dateFormat.ts            # Date formatting
+│   │   ├── pages/                        # Route-level screens
+│   │   ├── components/                   # Shared UI components
+│   │   ├── hooks/                        # Auth + shared hooks
+│   │   └── utils/api.ts                  # Axios client (baseURL uses env)
 │   └── package.json
-├── 📁 database/
-│   └── schema.sql                       # Complete database schema
-└── 📁 documentation/                    # Additional guides
-    ├── LEAVE_SYSTEM_GUIDE.md
-    ├── ADMIN_REASON_USER_GUIDE.md
-    └── TESTING_GUIDE.md
+├── database/
+│   └── schema.sql                        # MySQL schema + procedures/triggers
+├── package.json
+└── vercel.json                            # Frontend-only deploy config
 ```
+
+---
+
+## 📚 Detailed Project Overview
+
+This repository contains two applications: a React frontend and an Express backend.
+
+### High-level request flow
+
+1. **Frontend UI** (React pages under `frontend/src/pages/`) calls the API using `frontend/src/utils/api.ts`.
+2. **API base URL selection**:
+   - In development, the frontend uses Vite proxying so requests to `/api` are forwarded to the backend.
+   - In production, set `VITE_API_BASE_URL` to your backend URL (including `/api`) so the frontend calls the correct origin.
+3. **Backend routing** (Express) mounts all API routes under `/api` in `backend/src/server.ts` and exposes `GET /health`.
+4. **Auth + authorization**:
+   - Most routes require `Authorization: Bearer <access_token>`.
+   - `backend/src/middleware/auth.ts` validates JWTs and enforces role checks (ADMIN / HOD / FACULTY / SUPER_ADMIN).
+5. **Database rules**:
+   - The MySQL schema in `database/schema.sql` contains stored procedures and triggers used for key validations (e.g., timetable conflicts, leave rules).
+6. **Uploads**:
+   - Multer writes incoming files to `backend/uploads/temp/`.
+   - Controllers store/organize files into `backend/uploads/vaultify/` and `backend/uploads/timetables/`.
+   - Production hosting must provide **persistent storage** for `backend/uploads/*`.
+
+### Core modules (what lives where)
+
+- **Authentication** (`/api/auth/*`): registration, login, profile, faculty type list.
+- **Admin approvals + user management** (`/api/admin/*`): approve/reject faculty, CRUD users, force logout, bulk actions.
+- **Leave management** (`/api/leave/*`): eligibility, apply, history, pending approvals (ADMIN/HOD), monthly/yearly accrual triggers.
+- **Timetable** (`/api/timetable/*` + timetable files): create/view entries, upload timetable PDFs, assign timetable files to faculty.
+- **Vaultify** (`/api/vaultify/*`): upload, list, preview/download, category listing, admin view.
+- **Dynamic forms** (`/api/forms/*`): fetch a JSON form definition by category, submit payloads, view submissions.
+- **Audit logs** (`/api/admin/logs`): ADMIN/SUPER_ADMIN-only access for tracking actions.
 
 ---
 
@@ -152,7 +181,7 @@ NIT Faculty Management/
 - 🗂️ **Vaultify Document Vault**: Secure file storage with organized categories and access tracking
 - 📦 **Product Request System**: Resource requisition workflow with procurement tracking
 - 📊 **Dashboard Analytics**: Role-specific dashboards with quick access modules
-- 🔔 **Notification System**: Real-time updates and email notifications (configurable)
+- 🔔 **Notification System**: Dashboard notification counts and optional email notifications (configurable)
 - 🌐 **Responsive Design**: Mobile-first responsive UI built with TailwindCSS
 
 ### 🔄 Core System Modules
@@ -166,7 +195,7 @@ NIT Faculty Management/
 - **Advanced Validation**: Gender-specific leave types, probation restrictions, service period checks
 
 #### 2. **Authentication & Authorization**
-- **JWT Token Management**: Access and refresh token system with automatic renewal
+- **JWT Token Management**: Access + refresh tokens (expiry configured via environment variables)
 - **Role-based Access**: Three-tier permission system (Faculty, HOD, Admin)
 - **Secure Password Management**: bcrypt hashing with configurable rounds
 - **Session Management**: Automatic logout and token invalidation
@@ -203,7 +232,7 @@ NIT Faculty Management/
 | **Timetable Assignment** | ✓ View assigned schedules | ✓ Review department timetables | ✓ Manage all timetable assignments |
 | **Document Vault** | ✓ Upload department documents | ✓ Manage department documents | ✓ Full system document management |
 | **Leave Balance Management** | ✓ View personal balances | ✓ View all department balances | ✓ Edit all leave balances |
-| **Audit Logs** | ❌ Not accessible | ✓ Department activity logs | ✓ Complete system audit trail |
+| **Audit Logs** | ❌ Not accessible | ❌ Not accessible | ✓ Complete system audit trail |
 | **System Configuration** | ❌ Not accessible | ❌ Not accessible | ✓ Modify system settings |
 
 ---
@@ -213,7 +242,8 @@ NIT Faculty Management/
 ### For Administrators
 
 #### 🔐 System Access
-- **Login**: Use default admin credentials (admin@university.edu / admin123)
+- **Login (dev seed only)**: `admin@university.edu / admin123`
+- **Important**: This user is seeded by `database/schema.sql`. Change/remove it before any real deployment.
 - **Dashboard**: Overview of all pending approvals, system statistics, and quick actions
 - **Navigation**: Sidebar with all administrative modules
 
@@ -315,7 +345,7 @@ NIT Faculty Management/
 #### 📈 Reporting Features
 - **Department Analytics**: Leave trends, request patterns
 - **Approval History**: Decision history and justifications
-- **Activity Logs**: Department-specific audit trail
+- **Request Visibility**: Monitor department leave/product requests and their statuses
 
 ---
 
@@ -334,13 +364,13 @@ NIT Faculty Management/
 #### 1. **Clone Repository**
 ```bash
 git clone <repository-url>
-cd "NIT Faculty Management"
+cd <cloned-repo-folder>
 ```
 
 #### 2. **Environment Setup**
 ```bash
-# Copy environment template (if not exists)
-code .env                    # Create in root directory
+# Create a .env file in the repository root (same level as backend/ and frontend/)
+code .env
 ```
 
 **.env file content:**
@@ -451,9 +481,10 @@ npm run preview
 ```
 
 #### **Default Login Credentials**
-- **Administrator**:
-  - Email: `admin@university.edu`
-  - Password: `admin123`
+- **Dev seed administrator (from `database/schema.sql`)**:
+   - Email: `admin@university.edu`
+   - Password: `admin123`
+   - Do **not** use these credentials in production.
 - **Faculty Example**:
   - Email: Create new faculty via admin panel
   - Password: Set during user creation
@@ -486,7 +517,9 @@ All API requests (except login/register) require:
 Authorization: Bearer <access_token>
 ```
 
-Tokens are automatically managed by the frontend API client.
+Tokens are stored and attached to requests by the frontend API client.
+
+Note: the frontend stores tokens in `localStorage`, attaches the access token to requests, and on `401` clears tokens and redirects to `/login`. It does not perform automatic refresh-token renewal.
 
 ---
 
@@ -666,14 +699,13 @@ Admin assignment:
 ### Authentication Architecture
 
 1. **JWT Token System**:
-   - Access tokens: 15-minute expiry
-   - Refresh tokens: 30-day expiry
-   - Automatic token renewal
+   - Token expiries are configurable via `JWT_EXPIRES_IN` and `JWT_REFRESH_EXPIRES_IN`
+   - Defaults (if not set): access token `1h`, refresh token `7d`
+   - The frontend currently does **not** auto-refresh tokens; on `401` it clears tokens and redirects to `/login`
 
 2. **Password Security**:
    - bcrypt hashing with configurable rounds
-   - Password complexity requirements
-   - Secure password reset workflow
+   - (Optional) add password policy + reset flow if needed
 
 3. **Role-based Access Control**:
    - Database-level permission checks
@@ -684,8 +716,8 @@ Admin assignment:
 
 - **SQL Injection Prevention**: Parameterized queries
 - **XSS Protection**: Input sanitization and validation
-- **CSRF Protection**: JWT token validation
-- **CORS Configuration**: Domain restriction
+- **CSRF**: Not applicable in the same way as cookie-based auth (the API uses `Authorization: Bearer ...`).
+- **CORS**: dependency is present, but CORS is not enabled by default in server middleware. Enable/configure it if you serve frontend + backend from different origins.
 - **File Upload Security**: Type validation, size limits, path traversal protection
 
 ### Audit Trail
@@ -694,8 +726,6 @@ Admin assignment:
 - **Immutable Records**: Decision history cannot be altered
 - **Timestamp Tracking**: Precise action timing
 - **User Attribution**: Every change linked to user account
-
----
 
 ---
 
@@ -766,7 +796,7 @@ Because the backend writes uploaded files to disk (under `backend/uploads/...`),
 
 ### Deploy Frontend (Vercel)
 
-The included `vercel.json` deploys only the frontend build output.
+The included `vercel.json` deploys only the frontend build output and rewrites all routes to `index.html` for SPA routing.
 
 1. Set the Vercel build settings:
    - Build command: `cd frontend && npm ci && npm run build`
@@ -774,6 +804,7 @@ The included `vercel.json` deploys only the frontend build output.
 2. Set `VITE_API_BASE_URL`:
    - If backend is hosted at `https://api.example.com` and the API base path is `/api`, set:
      - `VITE_API_BASE_URL=https://api.example.com/api`
+   - This is important because the SPA rewrite would otherwise swallow same-origin `/api/*` requests.
 3. (Optional) If you want the frontend to call `/api` on the same domain, add a Vercel rewrite/proxy rule to forward `/api/*` to your backend.
 
 ---
