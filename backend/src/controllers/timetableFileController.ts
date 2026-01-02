@@ -109,10 +109,11 @@ export const getMyTimetables = async (req: AuthRequest, res: Response) => {
       params.push(semester);
     }
 
-    sql += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
-    params.push(Number(limit), Number(offset));
+    sql += ` ORDER BY created_at DESC`;
 
-    const [files]: any = await pool.execute<RowDataPacket[]>(sql, params);
+    const [allFiles]: any = await pool.execute<RowDataPacket[]>(sql, params);
+    
+    const files = allFiles.slice(offset, offset + limit);
     files.forEach((f: any) => formatRowDateTimes(f, ['created_at']));
 
     const [countResult] = await pool.execute<RowDataPacket[]>(
@@ -268,10 +269,11 @@ export const adminGetAllTimetables = async (req: AuthRequest, res: Response) => 
       params.push(`%${query}%`, `%${query}%`, `%${query}%`);
     }
 
-    sql += ` ORDER BY tf.created_at DESC LIMIT ? OFFSET ?`;
-    params.push(Number(limit), Number(offset));
+    sql += ` ORDER BY tf.created_at DESC`;
 
-    const [files]: any = await pool.execute<RowDataPacket[]>(sql, params);
+    const [allFiles]: any = await pool.execute<RowDataPacket[]>(sql, params);
+    
+    const files = allFiles.slice(offset, offset + limit);
     files.forEach((f: any) => formatRowDateTimes(f, ['created_at']));
 
     res.json({ files, page, pageSize });

@@ -467,65 +467,44 @@ export const bulkDelete = async (req: AuthRequest, res: Response) => {
 
 export const getPendingLeave = async (req: AuthRequest, res: Response) => {
   try {
-    const { department = '' } = req.query;
-    const { page, pageSize, limit, offset } = parsePagination(req.query.page, req.query.pageSize, {
-      defaultPageSize: 25,
-      maxPageSize: 100
-    });
-    
-    let whereClause = "WHERE la.status = 'PENDING'";
-    const params: any[] = [];
-    
-    if (department) {
-      whereClause += ' AND f.department = ?';
-      params.push(department);
-    }
-    
-    const [rows] = await pool.execute(
+    const [rows]: any = await pool.execute(
       `SELECT la.*, f.name as faculty_name, f.department, f.email, lt.name as leave_type, lt.code
        FROM leave_applications la
        JOIN faculty f ON la.faculty_id = f.id
        JOIN leave_types lt ON la.leave_type_id = lt.id
-       ${whereClause}
-       ORDER BY la.created_at ASC
-       LIMIT ? OFFSET ?`,
-      [...params, limit, offset]
+       WHERE la.status = 'PENDING'
+       ORDER BY la.created_at ASC`
     );
+    
+    rows.forEach((row: any) => {
+      formatRowDates(row, ['start_date', 'end_date']);
+      formatRowDateTimes(row, ['created_at', 'updated_at']);
+    });
     
     res.json(rows);
   } catch (error: any) {
+    console.error('getPendingLeave error:', error);
     res.status(500).json({ error: error.message });
   }
 };
 
 export const getPendingProducts = async (req: AuthRequest, res: Response) => {
   try {
-    const { department = '' } = req.query;
-    const { page, pageSize, limit, offset } = parsePagination(req.query.page, req.query.pageSize, {
-      defaultPageSize: 25,
-      maxPageSize: 100
-    });
-    
-    let whereClause = "WHERE pr.status = 'PENDING'";
-    const params: any[] = [];
-    
-    if (department) {
-      whereClause += ' AND f.department = ?';
-      params.push(department);
-    }
-    
-    const [rows] = await pool.execute(
+    const [rows]: any = await pool.execute(
       `SELECT pr.*, f.name as faculty_name, f.department, f.email
        FROM product_requests pr
        JOIN faculty f ON pr.faculty_id = f.id
-       ${whereClause}
-       ORDER BY pr.created_at ASC
-       LIMIT ? OFFSET ?`,
-      [...params, limit, offset]
+       WHERE pr.status = 'PENDING'
+       ORDER BY pr.created_at ASC`
     );
+    
+    rows.forEach((row: any) => {
+      formatRowDateTimes(row, ['created_at', 'updated_at']);
+    });
     
     res.json(rows);
   } catch (error: any) {
+    console.error('getPendingProducts error:', error);
     res.status(500).json({ error: error.message });
   }
 };

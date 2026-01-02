@@ -111,16 +111,30 @@ export const getMyFiles = async (req: AuthRequest, res: Response) => {
       params.push(visibility);
     }
 
-    sql += ` ORDER BY vf.uploaded_at DESC LIMIT ? OFFSET ?`;
-    params.push(Number(limit), Number(offset));
-
-    const [files]: any = await pool.execute<RowDataPacket[]>(sql, params);
+    sql += ` ORDER BY vf.uploaded_at DESC`;
+    
+    const [allFiles]: any = await pool.execute<RowDataPacket[]>(sql, params);
+    
+    const files = allFiles.slice(offset, offset + limit);
     files.forEach((f: any) => formatRowDateTimes(f, ['uploaded_at']));
 
-    const [countResult] = await pool.execute<RowDataPacket[]>(
-      `SELECT COUNT(*) as total FROM vault_files WHERE faculty_id = ? AND archived = FALSE`,
-      [facultyId]
-    );
+    let countSql = `SELECT COUNT(*) as total FROM vault_files WHERE faculty_id = ? AND archived = FALSE`;
+    const countParams: any[] = [facultyId];
+
+    if (query) {
+      countSql += ` AND (title LIKE ? OR description LIKE ?)`;
+      countParams.push(`%${query}%`, `%${query}%`);
+    }
+    if (category) {
+      countSql += ` AND category_id = ?`;
+      countParams.push(parseInt(category as string));
+    }
+    if (visibility) {
+      countSql += ` AND visibility = ?`;
+      countParams.push(visibility);
+    }
+
+    const [countResult] = await pool.execute<RowDataPacket[]>(countSql, countParams);
 
     res.json({ 
       files, 
@@ -336,10 +350,11 @@ export const adminGetAllFiles = async (req: AuthRequest, res: Response) => {
       params.push(`%${query}%`, `%${query}%`, `%${query}%`);
     }
 
-    sql += ` ORDER BY vf.uploaded_at DESC LIMIT ? OFFSET ?`;
-    params.push(Number(limit), Number(offset));
-
-    const [files]: any = await pool.execute<RowDataPacket[]>(sql, params);
+    sql += ` ORDER BY vf.uploaded_at DESC`;
+    
+    const [allFiles]: any = await pool.execute<RowDataPacket[]>(sql, params);
+    
+    const files = allFiles.slice(offset, offset + limit);
     files.forEach((f: any) => formatRowDateTimes(f, ['uploaded_at']));
 
     res.json({ files, page, pageSize });

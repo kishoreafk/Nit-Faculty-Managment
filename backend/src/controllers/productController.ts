@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { pool } from '../config/database.js';
 import { AuthRequest } from '../middleware/auth.js';
 import { formatRowDates, formatRowDateTimes } from '../utils/timeFormat.js';
+import { trySendMail } from '../utils/mailer.js';
 
 export const createProductRequest = async (req: AuthRequest, res: Response) => {
   try {
@@ -79,12 +80,13 @@ export const reviewProductRequest = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Reason is required for approval/rejection' });
     }
     
-
-    
     await connection.beginTransaction();
     
     const [[request]] = await connection.execute(
-      `SELECT * FROM product_requests WHERE id = ? FOR UPDATE`,
+      `SELECT pr.*, f.email as faculty_email, f.name as faculty_name
+       FROM product_requests pr
+       JOIN faculty f ON pr.faculty_id = f.id
+       WHERE pr.id = ? FOR UPDATE`,
       [id]
     ) as any;
     
@@ -109,8 +111,21 @@ export const reviewProductRequest = async (req: AuthRequest, res: Response) => {
         req.ip
       ]
     );
-    
+
     await connection.commit();
+
+    if (request.faculty_email) {
+      const subject = `Product request ${action.toLowerCase()}`;
+      const text =
+        `Hello ${request.faculty_name || ''},\n\n` +
+        `Your product request for "${request.item_name}" (Quantity: ${request.quantity}) has been ${action.toLowerCase()}.\n\n` +
+        `Request reason: ${request.reason}\n\n` +
+        `Reviewer note: ${reason}\n\n` +
+        `Regards,\nFaculty Portal`;
+
+      await trySendMail({ to: request.faculty_email, subject, text });
+    }
+
     res.json({ message: `Product request ${action.toLowerCase()}` });
   } catch (error: any) {
     await connection.rollback();

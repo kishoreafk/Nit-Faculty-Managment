@@ -18,13 +18,35 @@ export default function Dashboard() {
   const isAdmin = profile?.role_name === 'ADMIN' || profile?.role_name === 'SUPER_ADMIN';
 
   const statsCards = [
-    isAdmin ? {
+    ...(isAdmin && ((summary?.pendingLeaveCount || 0) + (summary?.pendingProductRequestsCount || 0) + (summary?.pendingFacultyCount || 0)) > 0 ? [{
       title: 'Pending Actions',
       icon: Clock,
       color: 'text-primary-600',
       bgColor: 'bg-primary-50',
-      value: (summary?.pendingLeaveCount || 0) + (summary?.pendingProductRequestsCount || 0) + (summary?.pendingFacultyCount || 0)
-    } : {
+      content: (
+        <div className="space-y-2">
+          {(summary?.pendingLeaveCount || 0) > 0 && (
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-secondary-700">Leave Requests</span>
+              <span className="font-semibold text-secondary-900">{summary.pendingLeaveCount}</span>
+            </div>
+          )}
+          {(summary?.pendingProductRequestsCount || 0) > 0 && (
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-secondary-700">Product Requests</span>
+              <span className="font-semibold text-secondary-900">{summary.pendingProductRequestsCount}</span>
+            </div>
+          )}
+          {(summary?.pendingFacultyCount || 0) > 0 && (
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-secondary-700">Faculty Approvals</span>
+              <span className="font-semibold text-secondary-900">{summary.pendingFacultyCount}</span>
+            </div>
+          )}
+        </div>
+      )
+    }] : []),
+    ...(!isAdmin ? [{
       title: 'Leave Balances',
       icon: Calendar,
       color: 'text-primary-600',
@@ -35,23 +57,25 @@ export default function Dashboard() {
           <span className="font-semibold text-secondary-900">{lb.available} days</span>
         </div>
       ))
-    },
-    {
-      title: 'Pending Product Requests',
-      icon: Package,
-      color: 'text-warning-600',
-      bgColor: 'bg-warning-50',
-      value: summary?.pendingProductRequestsCount || 0
-    },
-    {
-      title: isAdmin ? 'Pending Leave Requests' : 'My Leave Requests',
-      icon: FileText,
-      color: 'text-accent-600',
-      bgColor: 'bg-accent-50',
-      value: summary?.pendingLeaveCount || 0,
-      trend: summary?.pendingLeaveCount > 0 ? 'Needs Review' : 'All Clear'
-    }
-  ];
+    }] : []),
+    ...(!isAdmin ? [
+      {
+        title: 'Pending Product Requests',
+        icon: Package,
+        color: 'text-warning-600',
+        bgColor: 'bg-warning-50',
+        value: summary?.pendingProductRequestsCount || 0
+      },
+      {
+        title: 'My Leave Requests',
+        icon: FileText,
+        color: 'text-accent-600',
+        bgColor: 'bg-accent-50',
+        value: summary?.pendingLeaveCount || 0,
+        trend: summary?.pendingLeaveCount > 0 ? 'Needs Review' : 'All Clear'
+      }
+    ] : [])
+  ].filter(Boolean);
 
   const quickAccessModules = [
     { name: 'Leave Management', icon: Calendar, path: '/leave', gradient: 'gradient-bg-primary', roles: ['HOD', 'FACULTY'] },

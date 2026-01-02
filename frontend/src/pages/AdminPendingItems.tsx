@@ -18,9 +18,10 @@ export default function AdminPendingItems() {
     setLoading(true);
     try {
       const { data } = await api.get('/admin/pending/leave');
-      setLeaveApps(data);
+      setLeaveApps(data || []);
     } catch (error) {
       console.error('Failed to fetch leave', error);
+      setLeaveApps([]);
     } finally {
       setLoading(false);
     }
@@ -30,9 +31,10 @@ export default function AdminPendingItems() {
     setLoading(true);
     try {
       const { data } = await api.get('/admin/pending/product');
-      setProductReqs(data);
+      setProductReqs(data || []);
     } catch (error) {
       console.error('Failed to fetch products', error);
+      setProductReqs([]);
     } finally {
       setLoading(false);
     }
