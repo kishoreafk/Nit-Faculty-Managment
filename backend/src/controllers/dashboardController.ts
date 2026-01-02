@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { pool } from '../config/database.js';
 import { AuthRequest } from '../middleware/auth.js';
 import { RowDataPacket } from 'mysql2';
+import { formatRowDates, formatRowDateTimes } from '../utils/timeFormat.js';
 
 export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
   try {
@@ -124,6 +125,11 @@ export const getNotifications = async (req: AuthRequest, res: Response) => {
       const notifications = [...leaves, ...products, ...faculty].sort((a, b) => 
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
+      
+      notifications.forEach((n: any) => {
+        formatRowDates(n, ['start_date', 'end_date']);
+        formatRowDateTimes(n, ['created_at']);
+      });
       
       res.json({ notifications, total: notifications.length });
     } else {

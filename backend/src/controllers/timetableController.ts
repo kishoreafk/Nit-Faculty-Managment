@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { pool } from '../config/database.js';
 import { AuthRequest } from '../middleware/auth.js';
 import { formatRowTimes } from '../utils/timeFormat.js';
+import { isPrivilegedActor, logAdminActionFromReq } from '../utils/adminLog.js';
 
 export const createTimetableEntry = async (req: AuthRequest, res: Response) => {
   const connection = await pool.getConnection();
@@ -19,11 +20,16 @@ export const createTimetableEntry = async (req: AuthRequest, res: Response) => {
     
     const ttId = (result as any).insertId;
     
-    if (req.user!.role === 'ADMIN') {
-      await connection.execute(
-        `INSERT INTO admin_logs (admin_id, action_type, resource_type, resource_id, payload)
-         VALUES (?, 'TIMETABLE_ASSIGN', 'timetable', ?, ?)`,
-        [req.user!.id, ttId, JSON.stringify({ faculty_id, day_of_week, start_time, end_time, room_no })]
+    if (isPrivilegedActor(req.user?.role)) {
+      await logAdminActionFromReq(
+        req,
+        {
+          actionType: 'TIMETABLE_ASSIGN',
+          resourceType: 'timetable',
+          resourceId: ttId,
+          payload: { faculty_id, day_of_week, start_time, end_time, room_no }
+        },
+        { connection }
       );
     }
     

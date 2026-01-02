@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { pool } from '../config/database.js';
 import { AuthRequest } from '../middleware/auth.js';
 import { parsePagination } from '../utils/pagination.js';
+import { formatDateTime } from '../utils/timeFormat.js';
 
 export const getAdminLogs = async (req: AuthRequest, res: Response) => {
   try {
@@ -10,45 +11,64 @@ export const getAdminLogs = async (req: AuthRequest, res: Response) => {
       defaultPageSize: 50,
       maxPageSize: 100
     });
-    
-    let query = `SELECT al.*, f.name as admin_name, f.email as admin_email
-                 FROM admin_logs al
-                 LEFT JOIN faculty f ON f.id = al.admin_id
-                 WHERE 1=1`;
+
     const params: any[] = [];
-    
-    if (adminId) {
-      query += ` AND al.admin_id = ?`;
-      params.push(adminId);
+    let where = 'WHERE 1=1';
+
+    const asScalar = (v: unknown): string | undefined => {
+      if (Array.isArray(v)) return v[0] != null ? String(v[0]) : undefined;
+      if (v === undefined || v === null) return undefined;
+      return String(v);
+    };
+
+    const adminIdValue = asScalar(adminId);
+    const resourceTypeValue = asScalar(resource_type);
+    const actionTypeValue = asScalar(action_type);
+    const fromValue = asScalar(from);
+    const toValue = asScalar(to);
+
+    if (adminIdValue) {
+      where += ' AND al.admin_id = ?';
+      params.push(adminIdValue);
     }
-    
-    if (resource_type) {
-      query += ` AND al.resource_type = ?`;
-      params.push(resource_type);
+
+    if (resourceTypeValue) {
+      where += ' AND al.resource_type = ?';
+      params.push(resourceTypeValue);
     }
-    
-    if (action_type) {
-      query += ` AND al.action_type LIKE ?`;
-      params.push(`%${action_type}%`);
+
+    if (actionTypeValue) {
+      where += ' AND al.action_type LIKE ?';
+      params.push(`%${actionTypeValue}%`);
     }
-    
-    if (from) {
-      query += ` AND al.created_at >= ?`;
-      params.push(from);
+
+    if (fromValue) {
+      where += ' AND al.created_at >= ?';
+      params.push(fromValue);
     }
-    
-    if (to) {
-      query += ` AND al.created_at <= ?`;
-      params.push(to);
+
+    if (toValue) {
+      where += ' AND al.created_at <= ?';
+      params.push(toValue);
     }
+
+    const fromJoin = `FROM admin_logs al
+                      LEFT JOIN faculty f ON f.id = al.admin_id
+                      ${where}`;
+
+    const countSql = `SELECT COUNT(*) as total ${fromJoin}`;
+    const [[countRow]] = (await pool.execute(countSql, params)) as any;
+    const total = Number(countRow?.total ?? 0);
+
+    const itemsSql = `SELECT al.*, f.name as admin_name, f.email as admin_email
+                      ${fromJoin}
+                      ORDER BY al.created_at DESC
+                      LIMIT ${Number(limit)} OFFSET ${Number(offset)}`;
+    const [items]: any = await pool.execute(itemsSql, params);
     
-    const [[{ total }]] = await pool.execute(
-      query.replace('al.*, f.name as admin_name, f.email as admin_email', 'COUNT(*) as total'),
-      params
-    ) as any;
-    
-    query += ` ORDER BY al.created_at DESC LIMIT ? OFFSET ?`;
-    const [items] = await pool.execute(query, [...params, Number(limit), Number(offset)]);
+    items.forEach((item: any) => {
+      if (item.created_at) item.created_at = formatDateTime(item.created_at);
+    });
     
     res.json({
       total,
@@ -77,6 +97,7 @@ export const getLogById = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Log not found' });
     }
     
+    if (logs[0].created_at) logs[0].created_at = formatDateTime(logs[0].created_at);
     res.json(logs[0]);
   } catch (error: any) {
     res.status(500).json({ error: error.message });

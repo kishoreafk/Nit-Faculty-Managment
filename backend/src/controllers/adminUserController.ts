@@ -4,6 +4,7 @@ import { AuthRequest } from '../middleware/auth.js';
 import bcrypt from 'bcrypt';
 import { parsePagination } from '../utils/pagination.js';
 import { trySendMail } from '../utils/mailer.js';
+import { formatRowDates, formatRowDateTimes } from '../utils/timeFormat.js';
 
 export const getAllUsers = async (req: AuthRequest, res: Response) => {
   try {
@@ -59,7 +60,12 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
        ORDER BY f.approved ASC, f.name
        LIMIT ${limit} OFFSET ${offset}`;
 
-     const [rows] = await pool.execute(mainQuery, params);
+     const [rows]: any = await pool.execute(mainQuery, params);
+    
+    rows.forEach((row: any) => {
+      formatRowDates(row, ['doj']);
+      formatRowDateTimes(row, ['created_at', 'updated_at', 'last_login', 'deleted_at']);
+    });
     
     res.json({
       total: countResult[0].total,
@@ -110,8 +116,12 @@ export const getUserById = async (req: AuthRequest, res: Response) => {
       [id]
     );
     
+    const user = users[0];
+    formatRowDates(user, ['doj']);
+    formatRowDateTimes(user, ['created_at', 'updated_at', 'last_login', 'deleted_at']);
+    
     res.json({
-      ...users[0],
+      ...user,
       leave_balances: balances,
       pending_leave: pendingLeave,
       pending_products: pendingProducts
@@ -168,7 +178,7 @@ export const createUser = async (req: AuthRequest, res: Response) => {
       await trySendMail({ to: email, subject, text });
     }
     
-    res.status(201).json({ message: 'User created successfully', id: newUserId });
+    res.status(201).json({ message: 'User created successfully', id: newUserId, _skipAutoLog: true });
   } catch (error: any) {
     console.error('❌ createUser error:', error);
     await connection.rollback();
@@ -213,7 +223,7 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
     );
     
     await connection.commit();
-    res.json({ message: 'User updated successfully' });
+    res.json({ message: 'User updated successfully', _skipAutoLog: true });
   } catch (error: any) {
     await connection.rollback();
     res.status(500).json({ error: error.message });
@@ -260,7 +270,7 @@ export const updateCredentials = async (req: AuthRequest, res: Response) => {
     );
     
     await connection.commit();
-    res.json({ message: 'Credentials updated and user logged out' });
+    res.json({ message: 'Credentials updated and user logged out', _skipAutoLog: true });
   } catch (error: any) {
     await connection.rollback();
     res.status(500).json({ error: error.message });
@@ -295,7 +305,7 @@ export const deleteUser = async (req: AuthRequest, res: Response) => {
     );
 
     await connection.commit();
-    res.json({ message: 'User deleted successfully' });
+    res.json({ message: 'User deleted successfully', _skipAutoLog: true });
   } catch (error: any) {
     console.error('❌ deleteUser error:', error);
     await connection.rollback();
@@ -307,22 +317,30 @@ export const deleteUser = async (req: AuthRequest, res: Response) => {
 
 export const restoreUser = async (req: AuthRequest, res: Response) => {
   const connection = await pool.getConnection();
-  
+
   try {
     const { id } = req.params;
-    
+
     await connection.beginTransaction();
-    
+
+    const [oldData]: any = await connection.execute('SELECT deleted, name, email FROM faculty WHERE id = ? FOR UPDATE', [id]);
+
+    if (oldData.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ error: 'User not found' });
+    }
+
     await connection.execute('UPDATE faculty SET deleted = FALSE, deleted_at = NULL WHERE id = ?', [id]);
-    
+
     await connection.execute(
-      `INSERT INTO admin_logs (admin_id, action_type, resource_type, resource_id, after_state, ip_address)
-       VALUES (?, 'RESTORE_USER', 'faculty', ?, ?, ?)`,
-      [req.user!.id, id, JSON.stringify({ deleted: false }), req.ip]
+      `INSERT INTO admin_logs (admin_id, action_type, resource_type, resource_id, before_state, after_state, ip_address)
+       VALUES (?, 'RESTORE_USER', 'faculty', ?, ?, ?, ?)`,
+      [req.user!.id, id, JSON.stringify({ deleted: true, name: oldData[0].name, email: oldData[0].email }),
+       JSON.stringify({ deleted: false }), req.ip]
     );
-    
+
     await connection.commit();
-    res.json({ message: 'User restored successfully' });
+    res.json({ message: 'User restored successfully', _skipAutoLog: true });
   } catch (error: any) {
     await connection.rollback();
     res.status(500).json({ error: error.message });
@@ -358,7 +376,7 @@ export const promoteUser = async (req: AuthRequest, res: Response) => {
     );
     
     await connection.commit();
-    res.json({ message: 'User role updated successfully' });
+    res.json({ message: 'User role updated successfully', _skipAutoLog: true });
   } catch (error: any) {
     await connection.rollback();
     res.status(500).json({ error: error.message });
@@ -369,22 +387,28 @@ export const promoteUser = async (req: AuthRequest, res: Response) => {
 
 export const forceLogout = async (req: AuthRequest, res: Response) => {
   const connection = await pool.getConnection();
-  
+
   try {
     const { id } = req.params;
-    
+
     await connection.beginTransaction();
-    
-    await connection.execute('UPDATE auth_tokens SET revoked = TRUE, revoked_at = NOW() WHERE faculty_id = ?', [id]);
-    
-    await connection.execute(
-      `INSERT INTO admin_logs (admin_id, action_type, resource_type, resource_id, ip_address)
-       VALUES (?, 'FORCE_LOGOUT', 'faculty', ?, ?)`,
-      [req.user!.id, id, req.ip]
+
+    const [tokenCount]: any = await connection.execute(
+      'SELECT COUNT(*) as count FROM auth_tokens WHERE faculty_id = ? AND revoked = FALSE',
+      [id]
     );
-    
+
+    await connection.execute('UPDATE auth_tokens SET revoked = TRUE, revoked_at = NOW() WHERE faculty_id = ?', [id]);
+
+    await connection.execute(
+      `INSERT INTO admin_logs (admin_id, action_type, resource_type, resource_id, payload, reason, ip_address)
+       VALUES (?, 'FORCE_LOGOUT', 'faculty', ?, ?, ?, ?)`,
+      [req.user!.id, id, JSON.stringify({ sessions_revoked: tokenCount[0].count }),
+       `Force logout of user sessions`, req.ip]
+    );
+
     await connection.commit();
-    res.json({ message: 'User sessions revoked successfully' });
+    res.json({ message: 'User sessions revoked successfully', _skipAutoLog: true });
   } catch (error: any) {
     await connection.rollback();
     res.status(500).json({ error: error.message });
@@ -395,36 +419,44 @@ export const forceLogout = async (req: AuthRequest, res: Response) => {
 
 export const bulkDelete = async (req: AuthRequest, res: Response) => {
   const connection = await pool.getConnection();
-  
+
   try {
     const { ids, reason } = req.body;
-    
+
     if (!Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ error: 'Invalid ids array' });
     }
-    
+
     await connection.beginTransaction();
-    
+
     let succeeded = 0;
     let failed = 0;
-    
+    const deletedUsers = [];
+
     for (const id of ids) {
       try {
+        const [users]: any = await connection.execute('SELECT name, email FROM faculty WHERE id = ?', [id]);
+        const userData = users[0] || null;
+
         await connection.execute('UPDATE faculty SET deleted = TRUE, deleted_at = NOW() WHERE id = ?', [id]);
         await connection.execute('UPDATE auth_tokens SET revoked = TRUE, revoked_at = NOW() WHERE faculty_id = ?', [id]);
+
         await connection.execute(
-          `INSERT INTO admin_logs (admin_id, action_type, resource_type, resource_id, reason, ip_address)
-           VALUES (?, 'BULK_DELETE_USER', 'faculty', ?, ?, ?)`,
-          [req.user!.id, id, reason || 'Bulk delete', req.ip]
+          `INSERT INTO admin_logs (admin_id, action_type, resource_type, resource_id, before_state, after_state, reason, ip_address)
+           VALUES (?, 'BULK_DELETE_USER', 'faculty', ?, ?, ?, ?, ?)`,
+          [req.user!.id, id, JSON.stringify({ deleted: false, name: userData?.name, email: userData?.email }),
+           JSON.stringify({ deleted: true }), reason || 'Bulk delete', req.ip]
         );
+
+        if (userData) deletedUsers.push(userData);
         succeeded++;
       } catch {
         failed++;
       }
     }
-    
+
     await connection.commit();
-    res.json({ message: 'Bulk delete completed', succeeded, failed });
+    res.json({ message: 'Bulk delete completed', succeeded, failed, deletedUsers, _skipAutoLog: true });
   } catch (error: any) {
     await connection.rollback();
     res.status(500).json({ error: error.message });
@@ -516,7 +548,7 @@ export const reviewLeave = async (req: AuthRequest, res: Response) => {
     );
     
     await connection.commit();
-    res.json({ message: `Leave ${action.toLowerCase()} successfully` });
+    res.json({ message: `Leave ${action.toLowerCase()} successfully`, _skipAutoLog: true });
   } catch (error: any) {
     await connection.rollback();
     res.status(500).json({ error: error.message });
@@ -546,7 +578,7 @@ export const reviewProduct = async (req: AuthRequest, res: Response) => {
     );
     
     await connection.commit();
-    res.json({ message: `Product request ${action.toLowerCase()} successfully` });
+    res.json({ message: `Product request ${action.toLowerCase()} successfully`, _skipAutoLog: true });
   } catch (error: any) {
     await connection.rollback();
     res.status(500).json({ error: error.message });
@@ -598,7 +630,7 @@ export const approveUser = async (req: AuthRequest, res: Response) => {
       await trySendMail({ to: email, subject, text });
     }
 
-    res.json({ message: 'User approved successfully' });
+    res.json({ message: 'User approved successfully', _skipAutoLog: true });
   } catch (error: any) {
     await connection.rollback();
     res.status(500).json({ error: error.message });
@@ -608,35 +640,25 @@ export const approveUser = async (req: AuthRequest, res: Response) => {
 };
 
 export const rejectUser = async (req: AuthRequest, res: Response) => {
-  const connection = await pool.getConnection();
-  
   try {
     const { id } = req.params;
     const { reason } = req.body;
     
-    await connection.beginTransaction();
-    
-    const [users]: any = await connection.execute('SELECT approved, email, name FROM faculty WHERE id = ? FOR UPDATE', [id]);
+    const [users]: any = await pool.execute('SELECT approved, email, name FROM faculty WHERE id = ?', [id]);
     
     if (users.length === 0) {
-      await connection.rollback();
       return res.status(404).json({ error: 'User not found' });
     }
     
     if (users[0].approved) {
-      await connection.rollback();
       return res.status(400).json({ error: 'Cannot reject already approved user' });
     }
     
-    await connection.execute('CALL sp_permanent_delete_user(?, ?, ?)', [id, req.user!.id, reason || 'Registration rejected']);
+    await pool.execute('CALL sp_permanent_delete_user(?, ?, ?)', [id, req.user!.id, reason || 'Registration rejected']);
     
-    await connection.commit();
-    res.json({ message: 'User registration rejected and removed' });
+    res.json({ message: 'User registration rejected and removed', _skipAutoLog: true });
   } catch (error: any) {
-    await connection.rollback();
     res.status(500).json({ error: error.message });
-  } finally {
-    connection.release();
   }
 };
 
@@ -647,21 +669,16 @@ export const permanentDelete = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const { reason } = req.body;
     
-    await connection.beginTransaction();
-    
-    const [users]: any = await connection.execute('SELECT name, email FROM faculty WHERE id = ? FOR UPDATE', [id]);
+    const [users]: any = await connection.execute('SELECT name, email FROM faculty WHERE id = ?', [id]);
     
     if (users.length === 0) {
-      await connection.rollback();
       return res.status(404).json({ error: 'User not found' });
     }
     
     await connection.execute('CALL sp_permanent_delete_user(?, ?, ?)', [id, req.user!.id, reason]);
     
-    await connection.commit();
-    res.json({ message: 'User permanently deleted from database', user: users[0] });
+    res.json({ message: 'User permanently deleted from database', user: users[0], _skipAutoLog: true });
   } catch (error: any) {
-    await connection.rollback();
     res.status(500).json({ error: error.message });
   } finally {
     connection.release();
@@ -669,8 +686,6 @@ export const permanentDelete = async (req: AuthRequest, res: Response) => {
 };
 
 export const bulkPermanentDelete = async (req: AuthRequest, res: Response) => {
-  const connection = await pool.getConnection();
-  
   try {
     const { ids, reason } = req.body;
     
@@ -678,17 +693,15 @@ export const bulkPermanentDelete = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Invalid ids array' });
     }
     
-    await connection.beginTransaction();
-    
     let succeeded = 0;
     let failed = 0;
     const deletedUsers = [];
     
     for (const id of ids) {
       try {
-        const [users]: any = await connection.execute('SELECT name, email FROM faculty WHERE id = ?', [id]);
+        const [users]: any = await pool.execute('SELECT name, email FROM faculty WHERE id = ?', [id]);
         if (users.length > 0) {
-          await connection.execute('CALL sp_permanent_delete_user(?, ?, ?)', [id, req.user!.id, reason]);
+          await pool.execute('CALL sp_permanent_delete_user(?, ?, ?)', [id, req.user!.id, reason]);
           deletedUsers.push(users[0]);
           succeeded++;
         } else {
@@ -699,13 +712,9 @@ export const bulkPermanentDelete = async (req: AuthRequest, res: Response) => {
       }
     }
     
-    await connection.commit();
-    res.json({ message: 'Bulk permanent delete completed', succeeded, failed, deletedUsers });
+    res.json({ message: 'Bulk permanent delete completed', succeeded, failed, deletedUsers, _skipAutoLog: true });
   } catch (error: any) {
-    await connection.rollback();
     res.status(500).json({ error: error.message });
-  } finally {
-    connection.release();
   }
 };
 
@@ -758,7 +767,7 @@ export const bulkApprove = async (req: AuthRequest, res: Response) => {
     }
     
     await connection.commit();
-    res.json({ message: 'Bulk approval completed', succeeded, failed });
+    res.json({ message: 'Bulk approval completed', succeeded, failed, _skipAutoLog: true });
   } catch (error: any) {
     await connection.rollback();
     res.status(500).json({ error: error.message });

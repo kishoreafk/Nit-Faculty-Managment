@@ -3,6 +3,7 @@ import { pool } from '../config/database.js';
 import { AuthRequest } from '../middleware/auth.js';
 import { RowDataPacket } from 'mysql2';
 import { trySendMail } from '../utils/mailer.js';
+import { formatRowDates, formatRowDateTimes } from '../utils/timeFormat.js';
 
 export const getLeaveBalance = async (req: AuthRequest, res: Response) => {
   try {
@@ -95,6 +96,8 @@ export const getLeaveApplications = async (req: AuthRequest, res: Response) => {
     );
     
     for (const row of rows) {
+      formatRowDates(row, ['start_date', 'end_date']);
+      formatRowDateTimes(row, ['created_at', 'updated_at', 'reviewed_at']);
       const [adjustments] = await pool.execute(
         `SELECT ladj.*, f.name as alternate_faculty_name, f.designation as alternate_designation, f.email as alternate_email
          FROM leave_adjustments ladj
@@ -179,7 +182,7 @@ export const updateLeaveStatus = async (req: AuthRequest, res: Response) => {
       await trySendMail({ to: leaveInfo.faculty_email, subject, text });
     }
 
-    res.json({ message: `Leave ${status.toLowerCase()} successfully` });
+    res.json({ message: `Leave ${status.toLowerCase()} successfully`, _skipAutoLog: true });
   } catch (error: any) {
     await connection.rollback();
     res.status(500).json({ error: error.message });
@@ -205,6 +208,8 @@ export const getPendingLeaves = async (req: AuthRequest, res: Response) => {
     );
     
     for (const row of rows) {
+      formatRowDates(row, ['start_date', 'end_date']);
+      formatRowDateTimes(row, ['created_at', 'updated_at', 'reviewed_at']);
       const [adjustments] = await pool.execute(
         `SELECT ladj.*, f.name as alternate_faculty_name, f.designation as alternate_designation, 
                 f.email as alternate_email, f.department as alternate_department
@@ -257,8 +262,15 @@ export const triggerMonthlyAccrual = async (req: AuthRequest, res: Response) => 
     if (req.user!.role !== 'SUPER_ADMIN' && req.user!.role !== 'ADMIN') {
       return res.status(403).json({ error: 'Unauthorized' });
     }
-    
+
     await pool.execute('CALL sp_monthly_leave_accrual()');
+
+    await pool.execute(
+      `INSERT INTO admin_logs (admin_id, action_type, resource_type, reason, ip_address)
+       VALUES (?, 'TRIGGER_MONTHLY_ACCRUAL', 'leave_system', ?, ?)`,
+      [req.user!.id, 'Manual trigger of monthly leave accrual process', req.ip]
+    );
+
     res.json({ message: 'Monthly leave accrual completed successfully' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -270,8 +282,15 @@ export const triggerYearlyAccrual = async (req: AuthRequest, res: Response) => {
     if (req.user!.role !== 'SUPER_ADMIN' && req.user!.role !== 'ADMIN') {
       return res.status(403).json({ error: 'Unauthorized' });
     }
-    
+
     await pool.execute('CALL sp_yearly_leave_accrual()');
+
+    await pool.execute(
+      `INSERT INTO admin_logs (admin_id, action_type, resource_type, reason, ip_address)
+       VALUES (?, 'TRIGGER_YEARLY_ACCRUAL', 'leave_system', ?, ?)`,
+      [req.user!.id, 'Manual trigger of yearly leave accrual process', req.ip]
+    );
+
     res.json({ message: 'Yearly leave accrual completed successfully' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -283,8 +302,15 @@ export const triggerCarryForward = async (req: AuthRequest, res: Response) => {
     if (req.user!.role !== 'SUPER_ADMIN' && req.user!.role !== 'ADMIN') {
       return res.status(403).json({ error: 'Unauthorized' });
     }
-    
+
     await pool.execute('CALL sp_carry_forward_leaves()');
+
+    await pool.execute(
+      `INSERT INTO admin_logs (admin_id, action_type, resource_type, reason, ip_address)
+       VALUES (?, 'TRIGGER_CARRY_FORWARD', 'leave_system', ?, ?)`,
+      [req.user!.id, 'Manual trigger of leave carry forward process', req.ip]
+    );
+
     res.json({ message: 'Leave carry forward completed successfully' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -337,7 +363,7 @@ export const confirmAdjustment = async (req: AuthRequest, res: Response) => {
 
 export const getMyAdjustments = async (req: AuthRequest, res: Response) => {
   try {
-    const [rows] = await pool.execute(
+    const [rows]: any = await pool.execute(
       `SELECT ladj.*, la.start_date, la.end_date, la.reason, la.status as leave_status,
               f.name as applicant_name, f.department as applicant_department, f.designation as applicant_designation,
               lt.name as leave_type
@@ -349,6 +375,11 @@ export const getMyAdjustments = async (req: AuthRequest, res: Response) => {
        ORDER BY ladj.adjustment_date DESC, ladj.confirmation_status ASC`,
       [req.user!.id]
     );
+    
+    rows.forEach((row: any) => {
+      formatRowDates(row, ['adjustment_date', 'start_date', 'end_date']);
+      formatRowDateTimes(row, ['confirmed_at']);
+    });
     
     res.json(rows);
   } catch (error: any) {
@@ -377,6 +408,9 @@ export const getLeaveDetails = async (req: AuthRequest, res: Response) => {
     if (!leave) {
       return res.status(404).json({ error: 'Leave application not found' });
     }
+    
+    formatRowDates(leave, ['start_date', 'end_date']);
+    formatRowDateTimes(leave, ['created_at', 'updated_at', 'reviewed_at']);
     
     const [adjustments] = await pool.execute(
       `SELECT ladj.*, f.name as alternate_faculty_name, f.designation as alternate_designation,
@@ -444,49 +478,39 @@ export const deleteLeaveApplication = async (req: AuthRequest, res: Response) =>
 };
 
 export const updateFacultyLeaveBalance = async (req: AuthRequest, res: Response) => {
-  const connection = await pool.getConnection();
-  
   try {
     const { faculty_id, leave_type_id, new_balance, reason } = req.body;
-    
+
     if (!reason || reason.trim() === '') {
       return res.status(400).json({ error: 'Reason is required' });
     }
-    
-    await connection.beginTransaction();
-    
-    const [[faculty]]: any = await connection.execute(
+
+    const [[faculty]]: any = await pool.execute(
       `SELECT id, name FROM faculty WHERE id = ? AND active = TRUE`,
       [faculty_id]
     );
-    
+
     if (!faculty) {
-      await connection.rollback();
       return res.status(404).json({ error: 'Faculty not found' });
     }
-    
-    const [[leaveType]]: any = await connection.execute(
+
+    const [[leaveType]]: any = await pool.execute(
       `SELECT id, name FROM leave_types WHERE id = ?`,
       [leave_type_id]
     );
-    
+
     if (!leaveType) {
-      await connection.rollback();
       return res.status(404).json({ error: 'Leave type not found' });
     }
-    
-    await connection.execute(
+
+    await pool.execute(
       `CALL sp_admin_update_leave_balance(?, ?, ?, ?, ?)`,
       [faculty_id, leave_type_id, new_balance, req.user!.id, reason]
     );
-    
-    await connection.commit();
-    res.json({ message: 'Leave balance updated successfully' });
+
+    res.json({ message: 'Leave balance updated successfully', _skipAutoLog: true });
   } catch (error: any) {
-    await connection.rollback();
     res.status(500).json({ error: error.message });
-  } finally {
-    connection.release();
   }
 };
 

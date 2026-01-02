@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { pool } from '../config/database.js';
 import { AuthRequest } from '../middleware/auth.js';
+import { formatRowDates, formatRowDateTimes } from '../utils/timeFormat.js';
 
 export const createProductRequest = async (req: AuthRequest, res: Response) => {
   try {
@@ -19,7 +20,7 @@ export const createProductRequest = async (req: AuthRequest, res: Response) => {
 
 export const getMyProductRequests = async (req: AuthRequest, res: Response) => {
   try {
-    const [rows] = await pool.execute(
+    const [rows]: any = await pool.execute(
       `SELECT pr.*, f.name as admin_name 
        FROM product_requests pr
        LEFT JOIN faculty f ON pr.admin_id = f.id
@@ -27,6 +28,9 @@ export const getMyProductRequests = async (req: AuthRequest, res: Response) => {
        ORDER BY pr.created_at DESC`,
       [req.user!.id]
     );
+    rows.forEach((row: any) => {
+      formatRowDates(row, ['created_at', 'reviewed_at', 'deleted_at']);
+    });
     res.json(rows);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -53,7 +57,11 @@ export const getAllProductRequests = async (req: AuthRequest, res: Response) => 
     
     query += ` ORDER BY FIELD(pr.status, 'PENDING', 'APPROVED', 'REJECTED'), pr.created_at DESC`;
     
-    const [rows] = await pool.execute(query, params);
+    const [rows]: any = await pool.execute(query, params);
+    rows.forEach((row: any) => {
+      formatRowDates(row, ['created_at']);
+      formatRowDateTimes(row, ['reviewed_at']);
+    });
     res.json(rows);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -162,6 +170,8 @@ export const getProductRequestDetails = async (req: AuthRequest, res: Response) 
       return res.status(404).json({ error: 'Product request not found' });
     }
     
+    formatRowDates(request, ['created_at']);
+    formatRowDateTimes(request, ['reviewed_at']);
     res.json(request);
   } catch (error: any) {
     res.status(500).json({ error: error.message });

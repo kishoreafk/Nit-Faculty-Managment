@@ -7,6 +7,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { parsePagination } from '../utils/pagination.js';
+import { formatRowDateTimes } from '../utils/timeFormat.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -113,7 +114,8 @@ export const getMyFiles = async (req: AuthRequest, res: Response) => {
     sql += ` ORDER BY vf.uploaded_at DESC LIMIT ? OFFSET ?`;
     params.push(Number(limit), Number(offset));
 
-    const [files] = await pool.execute<RowDataPacket[]>(sql, params);
+    const [files]: any = await pool.execute<RowDataPacket[]>(sql, params);
+    files.forEach((f: any) => formatRowDateTimes(f, ['uploaded_at']));
 
     const [countResult] = await pool.execute<RowDataPacket[]>(
       `SELECT COUNT(*) as total FROM vault_files WHERE faculty_id = ? AND archived = FALSE`,
@@ -337,7 +339,8 @@ export const adminGetAllFiles = async (req: AuthRequest, res: Response) => {
     sql += ` ORDER BY vf.uploaded_at DESC LIMIT ? OFFSET ?`;
     params.push(Number(limit), Number(offset));
 
-    const [files] = await pool.execute<RowDataPacket[]>(sql, params);
+    const [files]: any = await pool.execute<RowDataPacket[]>(sql, params);
+    files.forEach((f: any) => formatRowDateTimes(f, ['uploaded_at']));
 
     res.json({ files, page, pageSize });
   } catch (error: any) {

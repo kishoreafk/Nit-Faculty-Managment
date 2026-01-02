@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { pool } from '../config/database.js';
 import { AuthRequest } from '../middleware/auth.js';
+import { formatRowDateTimes } from '../utils/timeFormat.js';
 
 export const getFormDefinition = async (req: AuthRequest, res: Response) => {
   try {
@@ -43,7 +44,7 @@ export const submitForm = async (req: AuthRequest, res: Response) => {
 
 export const getSubmissions = async (req: AuthRequest, res: Response) => {
   try {
-    const [rows] = await pool.execute(
+    const [rows]: any = await pool.execute(
       `SELECT fs.*, fd.name as form_name, f.name as reviewer_name 
        FROM form_submissions fs 
        JOIN form_definitions fd ON fs.form_id = fd.id 
@@ -52,6 +53,7 @@ export const getSubmissions = async (req: AuthRequest, res: Response) => {
        ORDER BY fs.created_at DESC`,
       [req.user!.id]
     );
+    rows.forEach((row: any) => formatRowDateTimes(row, ['created_at', 'reviewed_at']));
     res.json(rows);
   } catch (error: any) {
     res.status(500).json({ error: error.message });

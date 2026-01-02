@@ -2,16 +2,21 @@ import { Response } from 'express';
 import { pool } from '../config/database.js';
 import { AuthRequest } from '../middleware/auth.js';
 import { trySendMail } from '../utils/mailer.js';
+import { formatRowDates, formatRowDateTimes } from '../utils/timeFormat.js';
 
 export const getPendingFaculty = async (req: AuthRequest, res: Response) => {
   try {
-    const [rows] = await pool.execute(
+    const [rows]: any = await pool.execute(
       `SELECT f.*, ft.name as faculty_type_name 
        FROM faculty f 
        JOIN faculty_types ft ON f.faculty_type_id = ft.id 
        WHERE f.approved = FALSE AND f.active = TRUE 
        ORDER BY f.created_at ASC`
     );
+    rows.forEach((row: any) => {
+      formatRowDates(row, ['doj']);
+      formatRowDateTimes(row, ['created_at', 'updated_at']);
+    });
     res.json(rows);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -111,7 +116,7 @@ export const rejectFaculty = async (req: AuthRequest, res: Response) => {
 
 export const getAllFaculty = async (req: AuthRequest, res: Response) => {
   try {
-    const [rows] = await pool.execute(
+    const [rows]: any = await pool.execute(
       `SELECT f.*, ft.name as faculty_type_name, r.name as role_name 
        FROM faculty f 
        JOIN faculty_types ft ON f.faculty_type_id = ft.id 
@@ -119,6 +124,10 @@ export const getAllFaculty = async (req: AuthRequest, res: Response) => {
        WHERE f.active = TRUE 
        ORDER BY f.name`
     );
+    rows.forEach((row: any) => {
+      formatRowDates(row, ['doj']);
+      formatRowDateTimes(row, ['created_at', 'updated_at', 'last_login']);
+    });
     res.json(rows);
   } catch (error: any) {
     res.status(500).json({ error: error.message });

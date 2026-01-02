@@ -4,6 +4,7 @@ import jwt, { SignOptions } from 'jsonwebtoken';
 import { pool } from '../config/database.js';
 import { AuthRequest } from '../middleware/auth.js';
 import { getJwtConfig } from '../config/env.js';
+import { formatRowDates, formatRowDateTimes } from '../utils/timeFormat.js';
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -114,6 +115,8 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
     
     const user = rows[0];
     delete user.password_hash;
+    formatRowDates(user, ['doj']);
+    formatRowDateTimes(user, ['created_at', 'updated_at', 'last_login']);
     
     res.json(user);
   } catch (error: any) {

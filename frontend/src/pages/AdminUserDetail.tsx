@@ -9,6 +9,8 @@ export default function AdminUserDetail() {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [password, setPassword] = useState('');
   const [forceReset, setForceReset] = useState(false);
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [selectedRole, setSelectedRole] = useState('');
 
   useEffect(() => {
     fetchUser();
@@ -41,11 +43,12 @@ export default function AdminUserDetail() {
   };
 
   const handlePromote = async () => {
-    const role = prompt('Enter new role (ADMIN, HOD, FACULTY):');
-    if (!role) return;
+    if (!selectedRole) return;
     try {
-      await api.post(`/admin/users/${id}/promote`, { role: role.toUpperCase() });
+      await api.post(`/admin/users/${id}/promote`, { role: selectedRole });
       alert('User role updated');
+      setShowRoleModal(false);
+      setSelectedRole('');
       fetchUser();
     } catch (error) {
       alert('Failed to update role');
@@ -184,7 +187,7 @@ export default function AdminUserDetail() {
                 Change Password
               </button>
               <button
-                onClick={handlePromote}
+                onClick={() => setShowRoleModal(true)}
                 className="w-full px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
               >
                 Change Role
@@ -235,6 +238,43 @@ export default function AdminUserDetail() {
               </button>
               <button
                 onClick={() => setShowPasswordModal(false)}
+                className="flex-1 px-4 py-2 bg-gray-300 rounded"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRoleModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-6 w-96">
+            <h3 className="text-xl font-semibold mb-4">Change User Role</h3>
+            <select
+              value={selectedRole}
+              onChange={(e) => setSelectedRole(e.target.value)}
+              className="w-full px-4 py-2 border rounded mb-4"
+            >
+              <option value="">Select Role</option>
+              <option value="FACULTY">Faculty</option>
+              <option value="HOD">HOD</option>
+              <option value="ADMIN">Admin</option>
+              <option value="SUPER_ADMIN">Super Admin</option>
+            </select>
+            <div className="flex gap-2">
+              <button
+                onClick={handlePromote}
+                disabled={!selectedRole}
+                className="flex-1 px-4 py-2 bg-purple-600 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Update Role
+              </button>
+              <button
+                onClick={() => {
+                  setShowRoleModal(false);
+                  setSelectedRole('');
+                }}
                 className="flex-1 px-4 py-2 bg-gray-300 rounded"
               >
                 Cancel

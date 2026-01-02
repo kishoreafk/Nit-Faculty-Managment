@@ -5,6 +5,7 @@ import { getJwtConfig, isProduction } from '../config/env.js';
 
 export interface AuthRequest extends Request {
   user?: { id: number; email: string; role: string };
+  authz?: { requiredRoles: string[] };
 }
 
 export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -50,6 +51,7 @@ export const authorize = (...roles: string[]) => {
       if (!isProduction) console.log('❌ Forbidden');
       return res.status(403).json({ error: 'Access denied' });
     }
+    req.authz = { requiredRoles: roles };
     if (!isProduction) console.log('✅ Authorization passed');
     next();
   };

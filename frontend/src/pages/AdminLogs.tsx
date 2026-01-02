@@ -12,7 +12,8 @@ export default function AdminLogs() {
     action_type: '',
     from: '',
     to: '',
-    page: 1
+    page: 1,
+    pageSize: 50
   });
 
   useEffect(() => {
@@ -161,7 +162,7 @@ export default function AdminLogs() {
               <span className="px-4 py-2">Page {filters.page}</span>
               <button
                 onClick={() => setFilters({ ...filters, page: filters.page + 1 })}
-                disabled={filters.page * 50 >= logs.total}
+                disabled={filters.page * filters.pageSize >= logs.total}
                 className="px-4 py-2 border rounded-lg disabled:opacity-50"
               >
                 Next

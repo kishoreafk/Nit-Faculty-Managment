@@ -7,6 +7,8 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { parsePagination } from '../utils/pagination.js';
+import { logAdminActionFromReq, isPrivilegedActor } from '../utils/adminLog.js';
+import { formatRowDateTimes } from '../utils/timeFormat.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -110,7 +112,8 @@ export const getMyTimetables = async (req: AuthRequest, res: Response) => {
     sql += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
     params.push(Number(limit), Number(offset));
 
-    const [files] = await pool.execute<RowDataPacket[]>(sql, params);
+    const [files]: any = await pool.execute<RowDataPacket[]>(sql, params);
+    files.forEach((f: any) => formatRowDateTimes(f, ['created_at']));
 
     const [countResult] = await pool.execute<RowDataPacket[]>(
       `SELECT COUNT(*) as total FROM timetable_files WHERE uploaded_by = ? AND is_active = TRUE`,
@@ -268,7 +271,8 @@ export const adminGetAllTimetables = async (req: AuthRequest, res: Response) => 
     sql += ` ORDER BY tf.created_at DESC LIMIT ? OFFSET ?`;
     params.push(Number(limit), Number(offset));
 
-    const [files] = await pool.execute<RowDataPacket[]>(sql, params);
+    const [files]: any = await pool.execute<RowDataPacket[]>(sql, params);
+    files.forEach((f: any) => formatRowDateTimes(f, ['created_at']));
 
     res.json({ files, page, pageSize });
   } catch (error: any) {
@@ -348,6 +352,13 @@ export const unassignTimetable = async (req: AuthRequest, res: Response) => {
          VALUES (?, 'UNASSIGN', ?, ?, ?, ?)`,
         [fileId, adminId, req.ip, req.get('user-agent'), `Unassigned from faculty ID ${facultyId}`]
       );
+
+      await logAdminActionFromReq(req, {
+        actionType: 'UNASSIGN_TIMETABLE',
+        resourceType: 'timetable_files',
+        resourceId: fileId,
+        payload: { facultyId, fileId }
+      });
     }
 
     res.json({ message: 'Timetable unassigned successfully' });
@@ -398,6 +409,15 @@ export const deleteTimetableFile = async (req: AuthRequest, res: Response) => {
       [id]
     );
 
+    if (isPrivilegedActor(userRole)) {
+      await logAdminActionFromReq(req, {
+        actionType: 'DELETE_TIMETABLE_FILE',
+        resourceType: 'timetable_files',
+        resourceId: Number(id),
+        payload: { deletedBy: userId, fileOwnerId: file.uploaded_by, storedFilename: file.stored_filename }
+      });
+    }
+
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
@@ -425,6 +445,7 @@ export const getAssignedTimetable = async (req: AuthRequest, res: Response) => {
       return res.json({ assigned: false, file: null });
     }
 
+    formatRowDateTimes(faculty[0], ['created_at']);
     res.json({ assigned: true, file: faculty[0] });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
